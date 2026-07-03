@@ -1,0 +1,50 @@
+scenario test_abbonato
+
+load SmartParking.asm
+
+//  STATO INIZIALE
+check stato = IDLE;
+check posti_std = 1; // BUGFIX: l'init del modello e' posti_std = 1 (non 5)
+
+//  1. L'AUTO ARRIVA ALL'INGRESSO 
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+//  2. IDENTIFICAZIONE E VERIFICA 
+// spengl il sensore di ingresso e passo il pass dell'abbonato
+set sens_in := false;
+set utente_rilevato := ABBONATO;
+step
+check stato = VER;
+
+// la macchina calcola da sola e apre la sbarra perché c'è posto
+step
+check stato = INGR;
+check posto_assegnato = POSTO_STD;
+
+//  3. INGRESSO FISICO E DECREMENTO 
+// l'auto passa sotto la sbarra
+set transito_ok := true;
+step
+check stato = IDLE; // BUGFIX: lo stato PARK non esiste nel dominio; dopo il transito la r_gestione_INGR torna in IDLE
+check posti_std = 0; // BUGFIX: posti_std parte da 1, quindi dopo l'ingresso resta 0
+
+//  4. L'AUTO DECIDE DI USCIRE 
+set transito_ok := false; // resetto sensore della sbarra
+set sens_out := true;
+step
+check stato = CHK_OUT;
+
+//  5. CONTROLLO IN USCITA 
+set sens_out := false;
+set utente_rilevato := ABBONATO;
+step
+check stato = USC; // TEST SUPERATO: ha saltato il pagamento (TARIF) ed è andato diretto alla sbarra!
+
+//  6. USCITA FISICA E INCREMENTO 
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_std = 1; // BUGFIX: torna al valore iniziale (1), non 5. Ha ridato il posto al parcheggio!
+check posto_assegnato = NESSUNO; // Ha pulito la memoria

@@ -1,0 +1,48 @@
+scenario test_disabile
+
+load SmartParking.asm
+
+check stato = IDLE;
+
+// --- 1. L'AUTO ENTRA ---
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+// Il sistema lo riconosce come utente Disabile
+set sens_in := false;
+set utente_rilevato := DISABILE;
+step
+check stato = VER;
+
+// Il sistema vede che c'è posto per disabili e apre la sbarra
+step
+check stato = INGR;
+check posto_assegnato = POSTO_DIS; // Memoria: ha preso il posto dedicato!
+
+// L'auto passa. Il sistema DECREMENTA i posti_dis e torna in attesa
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_dis = 0; // RINFORZO: verifica esplicita del decremento
+check posto_assegnato = POSTO_DIS; // la memoria resta POSTO_DIS: viene pulita solo in USC
+
+
+// --- 2. L'AUTO ESCE ---
+set transito_ok := false;
+set sens_out := true;
+step
+check stato = CHK_OUT;
+
+// Identificazione in uscita
+set sens_out := false;
+set utente_rilevato := DISABILE;
+step
+check stato = USC; // TEST SUPERATO: Salta la cassa (TARIF) e va dritto alla sbarra di uscita!
+
+// L'auto passa la sbarra di uscita. Il sistema RESTITUISCE il posto disabile e si resetta
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_dis = 1; // RINFORZO: il posto disabile viene restituito
+check posto_assegnato = NESSUNO; // Memoria pulita
