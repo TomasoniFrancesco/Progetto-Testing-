@@ -1,0 +1,47 @@
+scenario test_pieno
+
+load SmartParking.asm
+
+check stato = IDLE;
+check posti_std = 1;
+
+// --- 1. ENTRA LA PRIMA AUTO E RIEMPIE IL POSTO ---
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+set sens_in := false;
+set utente_rilevato := STD;
+step
+check stato = VER;
+
+// Apre la sbarra
+step
+check stato = INGR;
+
+// L'auto passa. Il sistema DECREMENTA e TORNA IN IDLE (nuova logica)
+set transito_ok := true;
+step
+check stato = IDLE;  // <-- QUI ABBIAMO CORRETTO IL TEST!
+check posti_std = 0; // Il parcheggio ora è PIENO!
+
+// --- 2. ARRIVA LA SECONDA AUTO (TESTIAMO IL RIFIUTO) ---
+set transito_ok := false;
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+set sens_in := false;
+set utente_rilevato := STD;
+step
+check stato = VER;
+
+// La macchina vede che posti_std = 0 e NEGA l'accesso
+step
+check stato = NEG; // TEST SUPERATO: Ha bloccato l'utente!
+
+// L'auto rifiutata se ne va in retromarcia
+set auto_via := true;
+step
+check stato = IDLE;
+check posti_std = 0; // I posti rimangono 0

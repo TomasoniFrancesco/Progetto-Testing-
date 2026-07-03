@@ -1,0 +1,73 @@
+scenario test_pieno_totale
+
+load SmartParking.asm
+
+// Obiettivo: saturare COMPLETAMENTE il parcheggio (sia posti_std che posti_dis a 0)
+// facendo entrare 1 STD e 1 DISABILE, poi verificare che un ulteriore DISABILE
+// venga rifiutato (NEG), coprendo il ramo "else -> stato := NEG" di r_gestione_VER
+// quando sia posti_dis sia posti_std sono esauriti.
+
+check stato = IDLE;
+check posti_std = 1;
+check posti_dis = 1;
+
+// --- 1. ENTRA L'AUTO STD: occupa il posto standard ---
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+set sens_in := false;
+set utente_rilevato := STD;
+step
+check stato = VER;
+
+step
+check stato = INGR;
+check posto_assegnato = POSTO_STD;
+
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_std = 0;
+
+// --- 2. ENTRA L'AUTO DISABILE: occupa il posto disabile ---
+set transito_ok := false;
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+set sens_in := false;
+set utente_rilevato := DISABILE;
+step
+check stato = VER;
+
+step
+check stato = INGR;
+check posto_assegnato = POSTO_DIS;
+
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_dis = 0;
+check posti_std = 0; // PARCHEGGIO COMPLETAMENTE PIENO
+
+// --- 3. ARRIVA UN TERZO UTENTE (DISABILE): deve essere respinto ---
+set transito_ok := false;
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+set sens_in := false;
+set utente_rilevato := DISABILE;
+step
+check stato = VER;
+
+// posti_dis = 0 (ramo fallback) e posti_std = 0 (ramo standard) -> NEG
+step
+check stato = NEG; // NESSUN posto disponibile, ne' disabile ne' standard
+
+set auto_via := true;
+step
+check stato = IDLE;
+check posti_std = 0;
+check posti_dis = 0;

@@ -1,0 +1,57 @@
+scenario test_pagamento_std
+
+load SmartParking.asm
+
+// Obiettivo: ciclo completo di un utente STD, incluso il passaggio dalla cassa (TARIF)
+// con un tentativo di pagamento fallito (pagamento_ok = false) che deve mantenere lo
+// stato TARIF, seguito da un pagamento riuscito che porta a USC e poi a IDLE.
+
+check stato = IDLE;
+check posti_std = 1;
+
+// --- 1. INGRESSO STD ---
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+set sens_in := false;
+set utente_rilevato := STD;
+step
+check stato = VER;
+
+step
+check stato = INGR;
+check posto_assegnato = POSTO_STD;
+
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_std = 0;
+
+// --- 2. USCITA: L'AUTO STD SI PRESENTA ALLA SBARRA DI USCITA ---
+set transito_ok := false;
+set sens_out := true;
+step
+check stato = CHK_OUT;
+
+set sens_out := false;
+set utente_rilevato := STD;
+step
+check stato = TARIF; // utente STD -> deve pagare, niente scorciatoie
+
+// --- 3. PAGAMENTO FALLITO: il sistema deve restare in TARIF ---
+set pagamento_ok := false;
+step
+check stato = TARIF; // resta in attesa di pagamento
+
+// --- 4. PAGAMENTO RIUSCITO ---
+set pagamento_ok := true;
+step
+check stato = USC;
+
+// --- 5. USCITA FISICA: il posto standard viene restituito ---
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_std = 1; // posto restituito
+check posto_assegnato = NESSUNO;
