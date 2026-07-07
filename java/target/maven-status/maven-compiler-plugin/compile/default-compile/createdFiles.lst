@@ -1,0 +1,10 @@
+it/tvsw/smartparking/core/SensorInput.class
+it/tvsw/smartparking/core/StatoSistema.class
+it/tvsw/smartparking/core/Parcheggio.class
+it/tvsw/smartparking/Application.class
+it/tvsw/smartparking/core/SmartParkingFSM$1.class
+it/tvsw/smartparking/ui/MainView.class
+it/tvsw/smartparking/core/TipoPosto.class
+it/tvsw/smartparking/core/SmartParkingFSM.class
+it/tvsw/smartparking/core/Display.class
+it/tvsw/smartparking/core/TipoUtente.class

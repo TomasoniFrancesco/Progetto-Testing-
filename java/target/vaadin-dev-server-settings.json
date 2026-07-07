@@ -1,0 +1,17 @@
+{
+  "frontendFolder": "/Users/francesco/Documents/INGEGNERIA/MAGISTRALE/TESTING/eclipse_asmeta_smv_2024_06_macOs_aarch64/macOs_aarch64/workspace/Progetto_Testing/java/./src/main/frontend",
+  "themeFolder": "themes",
+  "themeResourceFolder": "/Users/francesco/Documents/INGEGNERIA/MAGISTRALE/TESTING/eclipse_asmeta_smv_2024_06_macOs_aarch64/macOs_aarch64/workspace/Progetto_Testing/java/./src/main/frontend/generated/jar-resources",
+  "staticOutput": "/Users/francesco/Documents/INGEGNERIA/MAGISTRALE/TESTING/eclipse_asmeta_smv_2024_06_macOs_aarch64/macOs_aarch64/workspace/Progetto_Testing/java/target/classes/META-INF/VAADIN/webapp/VAADIN/static",
+  "generatedFolder": "generated",
+  "statsOutput": "/Users/francesco/Documents/INGEGNERIA/MAGISTRALE/TESTING/eclipse_asmeta_smv_2024_06_macOs_aarch64/macOs_aarch64/workspace/Progetto_Testing/java/target/classes/META-INF/VAADIN/config",
+  "frontendBundleOutput": "/Users/francesco/Documents/INGEGNERIA/MAGISTRALE/TESTING/eclipse_asmeta_smv_2024_06_macOs_aarch64/macOs_aarch64/workspace/Progetto_Testing/java/target/classes/META-INF/VAADIN/webapp",
+  "devBundleOutput": "/Users/francesco/Documents/INGEGNERIA/MAGISTRALE/TESTING/eclipse_asmeta_smv_2024_06_macOs_aarch64/macOs_aarch64/workspace/Progetto_Testing/java/target/dev-bundle/webapp",
+  "devBundleStatsOutput": "/Users/francesco/Documents/INGEGNERIA/MAGISTRALE/TESTING/eclipse_asmeta_smv_2024_06_macOs_aarch64/macOs_aarch64/workspace/Progetto_Testing/java/target/dev-bundle/config",
+  "jarResourcesFolder": "/Users/francesco/Documents/INGEGNERIA/MAGISTRALE/TESTING/eclipse_asmeta_smv_2024_06_macOs_aarch64/macOs_aarch64/workspace/Progetto_Testing/java/./src/main/frontend/generated/jar-resources",
+  "themeName": "",
+  "clientServiceWorkerSource": "/Users/francesco/Documents/INGEGNERIA/MAGISTRALE/TESTING/eclipse_asmeta_smv_2024_06_macOs_aarch64/macOs_aarch64/workspace/Progetto_Testing/java/target/sw.ts",
+  "pwaEnabled": false,
+  "offlineEnabled": false,
+  "offlinePath": "'offline.html'"
+}

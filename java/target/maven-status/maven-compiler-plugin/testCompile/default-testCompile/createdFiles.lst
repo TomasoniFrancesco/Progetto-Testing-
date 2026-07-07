@@ -1,0 +1,7 @@
+it/tvsw/smartparking/core/CombinatorialTest.class
+it/tvsw/smartparking/core/DisplayMockTest.class
+it/tvsw/smartparking/ui/UISeleniumTest.class
+it/tvsw/smartparking/core/SmartParkingFSMTest.class
+it/tvsw/smartparking/core/McdcVerificaTest.class
+it/tvsw/smartparking/core/ParcheggioTest.class
+it/tvsw/smartparking/core/ScenarioAvallaTest.class
