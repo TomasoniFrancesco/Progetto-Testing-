@@ -26,10 +26,10 @@ public class Parcheggio {
     public static final int MAX_DIS = 1;
 
     //@ public invariant 0 <= postiStd && postiStd <= MAX_STD;
-    private int postiStd;
+    private /*@ spec_public @*/ int postiStd;
 
     //@ public invariant 0 <= postiDis && postiDis <= MAX_DIS;
-    private int postiDis;
+    private /*@ spec_public @*/ int postiDis;
 
     /**
      * Crea un parcheggio con tutti i posti liberi (stato iniziale del modello ASM).
@@ -108,6 +108,7 @@ public class Parcheggio {
      *
      * @param posto il tipo di posto da liberare
      */
+    //@ requires posto != null;
     //@ requires posto == TipoPosto.POSTO_STD ==> postiStd < MAX_STD;
     //@ requires posto == TipoPosto.POSTO_DIS ==> postiDis < MAX_DIS;
     //@ ensures posto == TipoPosto.POSTO_STD ==> postiStd == \old(postiStd) + 1 && postiDis == \old(postiDis);

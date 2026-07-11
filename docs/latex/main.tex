@@ -1,0 +1,136 @@
+\documentclass[11pt,a4paper]{article}
+
+% ============================================================
+%  SmartParking - Documentazione progetto TVSW
+%  Compilare con: pdflatex main.tex  (due volte, per indice/riferimenti)
+% ============================================================
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% Carica babel con sillabazione italiana se il pacchetto linguistico e'
+% disponibile (caso normale su MacTeX/TeX Live completo); altrimenti
+% carica babel senza opzione di lingua, cosi' il documento compila
+% comunque (succede solo su installazioni minimali senza
+% texlive-lang-italian, es. alcuni Linux "headless").
+\IfFileExists{italian.ldf}{\PassOptionsToPackage{italian}{babel}}{}
+\usepackage{babel}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{underscore} % permette di usare "_" nel testo normale senza errori
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{caption}
+
+\geometry{margin=2.5cm}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!50!black,
+    citecolor=black,
+    urlcolor=blue!50!black,
+    pdftitle={SmartParking - Documentazione Progetto TVSW},
+    pdfauthor={Francesco Tomasoni}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Francesco Tomasoni}
+\lhead{SmartParking - TVSW}
+\rfoot{\thepage}
+
+% --- Stile per il codice sorgente (ASM / Java / YAML / shell) ---
+\lstdefinestyle{code}{
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    breakatwhitespace=false,
+    frame=single,
+    backgroundcolor=\color{black!5},
+    keywordstyle=\color{blue!70!black}\bfseries,
+    commentstyle=\color{green!40!black}\itshape,
+    stringstyle=\color{orange!70!black},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    tabsize=4,
+    showstringspaces=false
+}
+\lstset{style=code}
+
+% --- Stile "terminale" (sfondo scuro, testo chiaro): per contratti JML e output CLI ---
+\lstdefinestyle{terminal}{
+    basicstyle=\ttfamily\footnotesize\color{green!45!white},
+    backgroundcolor=\color{black!90},
+    frame=single,
+    rulecolor=\color{black},
+    breaklines=true,
+    breakatwhitespace=false,
+    keywordstyle=\color{green!45!white},
+    commentstyle=\color{green!70!white},
+    stringstyle=\color{green!45!white},
+    identifierstyle=\color{green!45!white},
+    numbers=none,
+    tabsize=4,
+    showstringspaces=false,
+    columns=fullflexible,
+    keepspaces=true
+}
+
+% ============================================================
+%  Comando \screenshot{nomefile}{didascalia}{descrizione}
+%
+%  Se images/<nomefile>.png esiste, la include normalmente.
+%  Altrimenti mostra un riquadro segnaposto con il nome del file
+%  atteso e la descrizione di cosa deve mostrare lo screenshot,
+%  cosi' il documento compila correttamente anche PRIMA di avere
+%  tutte le immagini pronte. Basta salvare il file .png con il
+%  nome giusto dentro docs/latex/images/ e ricompilare.
+% ============================================================
+\newcommand{\screenshot}[3]{%
+    \begin{figure}[h!]
+        \centering
+        \IfFileExists{images/#1.png}{%
+            \includegraphics[width=0.85\textwidth]{images/#1.png}%
+        }{%
+            \fbox{\begin{minipage}{0.85\textwidth}
+                \centering
+                \vspace{1.5cm}
+                {\bfseries\color{red} [SCREENSHOT MANCANTE: images/#1.png]}\\[0.5cm]
+                \parbox{0.75\textwidth}{\centering\small #3}
+                \vspace{1.5cm}
+            \end{minipage}}%
+        }
+        \caption{#2}
+        \label{fig:#1}
+    \end{figure}
+}
+
+\title{\textbf{SmartParking} \\ \large Documentazione del progetto -- Testing e Verifica del Software}
+\author{Francesco Tomasoni}
+\date{A.A. 2025/2026}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\tableofcontents
+\newpage
+
+\input{sections/01_requisiti}
+\input{sections/02_asmeta}
+\input{sections/04_java}
+\input{sections/05_testing}
+\input{sections/03_jml}
+\input{sections/06_analisi_statica}
+\input{sections/07_ci}
+\input{sections/08_conclusioni}
+
+\end{document}

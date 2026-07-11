@@ -205,4 +205,37 @@ class SmartParkingFSMTest {
         fsm.step(SensorInput.nessunEvento());
         assertEquals(StatoSistema.INGR, fsm.getStato()); // resta finche' non transita
     }
+
+    @Test
+    void uscRestaInUscFinoAlTransito() {
+        // Copre il self-loop di r_gestione_USC (transito_ok = false),
+        // analogo a quelli gia' testati per NEG/INGR/TARIF.
+        SmartParkingFSM fsm = new SmartParkingFSM(msg -> { });
+        fsm.step(SensorInput.sensIn());
+        fsm.step(SensorInput.utente(TipoUtente.ABBONATO));
+        fsm.step(SensorInput.utente(TipoUtente.ABBONATO)); // VER -> INGR
+        fsm.step(SensorInput.transito());                  // INGR -> IDLE
+        fsm.step(SensorInput.sensOut());
+        fsm.step(SensorInput.utente(TipoUtente.ABBONATO)); // CHK_OUT -> USC (no TARIF)
+        assertEquals(StatoSistema.USC, fsm.getStato());
+
+        fsm.step(SensorInput.nessunEvento());
+        assertEquals(StatoSistema.USC, fsm.getStato()); // resta finche' non transita
+        assertEquals(0, fsm.getPostiStd());             // posto non ancora rilasciato
+
+        fsm.step(SensorInput.transito());
+        assertEquals(StatoSistema.IDLE, fsm.getStato());
+        assertEquals(1, fsm.getPostiStd());
+    }
+
+    @Test
+    void fsmFunzionaSenzaDisplay() {
+        // Copre il ramo display == null di cambiaStato: la FSM deve funzionare
+        // anche senza un display collegato (display opzionale).
+        SmartParkingFSM fsm = new SmartParkingFSM((Display) null);
+        fsm.step(SensorInput.sensIn());
+        assertEquals(StatoSistema.CHK_IN, fsm.getStato());
+        fsm.step(SensorInput.utente(TipoUtente.STD));
+        assertEquals(StatoSistema.VER, fsm.getStato());
+    }
 }

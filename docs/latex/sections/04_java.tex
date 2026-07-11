@@ -1,0 +1,76 @@
+\section{Implementazione Java}
+
+\subsection{Struttura del progetto Maven}
+
+Il progetto Maven (\texttt{java/}) usa Java 17, Spring Boot + Vaadin 24 per la UI,
+JUnit 5 / Mockito per i test, JaCoCo per la copertura e PIT per il mutation testing.
+Il package \texttt{it.tvsw.smartparking.core} contiene:
+
+\begin{itemize}
+    \item \texttt{StatoSistema}, \texttt{TipoUtente}, \texttt{TipoPosto}: enum identici ai domini ASM;
+    \item \texttt{Parcheggio}: nucleo con contratti JML (Sezione~\ref{sec:jml-ref});
+    \item \texttt{SensorInput}: raccoglie i 6 input monitorati di uno step;
+    \item \texttt{Display}: interfaccia di notifica (usata per Mockito);
+    \item \texttt{SmartParkingFSM}: la macchina a stati, un metodo \texttt{step(SensorInput)} che replica la main rule ASM.
+\end{itemize}
+
+\subsection{La macchina a stati}
+
+\begin{lstlisting}[language=Java, caption={step() -- dispatch sullo stato corrente}]
+public void step(SensorInput input) {
+    switch (stato) {
+        case IDLE:     gestisciIdle(input); break;
+        case CHK_IN:   gestisciChkIn(); break;
+        case VER:      gestisciVer(input); break;
+        case NEG:      gestisciNeg(input); break;
+        case INGR:     gestisciIngr(input); break;
+        case CHK_OUT:  gestisciChkOut(input); break;
+        case TARIF:    gestisciTarif(input); break;
+        case USC:      gestisciUsc(input); break;
+    }
+}
+\end{lstlisting}
+
+\emph{Nota di design}: a differenza del modello ASM (che decrementa i contatori solo
+al transito effettivo in INGR), la classe \texttt{Parcheggio} decide e decrementa in
+un unico passo (\texttt{assegnaPosto}, chiamato da \texttt{gestisciVer}). La
+differenza non è osservabile negli scenari di test del progetto ed è stata scelta
+per mantenere il codice più semplice (si veda l'osservazione dedicata in
+Sezione~\ref{sec:analisi-statica}).
+
+\subsection{Interfaccia utente (Vaadin)}
+
+La vista \texttt{MainView} mostra lo stato corrente e i posti liberi, con bottoni che
+simulano i sensori: ``Arriva auto STD/DISABILE/ABBONATO'', ``Transito'',
+``Pagamento'', ``Auto va via'', ``Auto in uscita''.
+
+\screenshot{vaadin_ui_idle}{UI Vaadin -- stato iniziale}{%
+Lanciare \texttt{cd java \&\& mvn spring-boot:run}, aprire
+\url{http://localhost:8080}. Screenshot della pagina appena caricata: stato IDLE,
+posti standard liberi = 1, posti disabili liberi = 1.}
+
+\screenshot{vaadin_ui_ingresso_std}{UI Vaadin -- dopo un ingresso STD}{%
+Cliccare ``Arriva auto STD'' poi ``Transito''. Screenshot che mostra lo stato
+aggiornato (IDLE) e posti standard liberi = 0.}
+
+\screenshot{vaadin_ui_neg}{UI Vaadin -- accesso negato a parcheggio pieno}{%
+Con il parcheggio pieno (posti standard e disabili a 0), cliccare di nuovo un
+bottone ``Arriva auto...''. Screenshot che mostra il messaggio ``Accesso negato''.}
+
+\screenshot{vaadin_ui_tarif}{UI Vaadin -- attesa pagamento}{%
+Dopo un ingresso STD e un ``Transito'', cliccare ``Auto in uscita'': lo stato deve
+mostrare TARIF (in attesa di pagamento) prima di cliccare ``Pagamento''.}
+
+\subsection{Test end-to-end con Selenium}
+
+La UI è verificata anche con un test end-to-end Selenium
+(\texttt{UISeleniumTest}, tag JUnit ``ui'', escluso dalla build standard perché
+richiede l'applicazione avviata e Chrome): il test apre la pagina con ChromeDriver
+headless, attende il rendering client-side di Vaadin con \texttt{WebDriverWait},
+clicca ``Arriva auto STD'' e verifica che lo stato mostrato diventi INGR/NEG.
+Esecuzione: \texttt{mvn test -Dtest.groups=ui -Dtest.excludedGroups=} (oppure
+direttamente da Eclipse come JUnit test).
+
+\screenshot{selenium_test_green}{Test Selenium end-to-end superato}{%
+Vista JUnit di Eclipse (o terminale Maven) con \texttt{UISeleniumTest} verde,
+eseguito con l'applicazione attiva su localhost:8080.}

@@ -1,0 +1,169 @@
+\section{JML e verifica statica (ESC)}
+\label{sec:jml-ref}
+
+Per la parte di design by contract è stata annotata con JML la classe
+\texttt{Parcheggio} (package \texttt{it.tvsw.smartparking.core}), che costituisce il
+nucleo puro del dominio: gestisce i contatori dei posti liberi e la logica di
+assegnazione/rilascio, corrispondente alle regole \texttt{r\_gestione\_VER},
+\texttt{r\_gestione\_INGR} e \texttt{r\_gestione\_USC} del modello ASM. La classe è
+volutamente piccola e senza dipendenze esterne (solo \texttt{int} ed enum), per
+essere completamente dimostrabile da OpenJML in modalità Extended Static Checking.
+Come richiesto dalla consegna, \emph{il resto del sistema} (FSM, UI Vaadin, display,
+sensori) è Java normale, senza alcuna annotazione JML.
+
+Nota di visibilità: i campi \texttt{postiStd}/\texttt{postiDis} sono dichiarati
+\texttt{private /*@ spec\_public @*/}, perché le clausole di specifica
+\emph{public} (invarianti e postcondizioni) possono riferire solo elementi con
+visibilità di specifica public; senza \texttt{spec\_public} OpenJML segnala un
+errore di visibilità JML.
+
+\subsection{Invarianti}
+
+Sono stati creati due invarianti di classe, che devono valere in ogni stato
+osservabile dell'oggetto (da dopo il costruttore in poi):
+
+\begin{itemize}
+\item il numero di posti standard liberi è sempre compreso tra 0 e la capacità
+massima \texttt{MAX\_STD};
+\item il numero di posti disabili liberi è sempre compreso tra 0 e la capacità
+massima \texttt{MAX\_DIS}.
+\end{itemize}
+
+Sono la traduzione a livello Java delle proprietà di safety verificate con il model
+checking sul modello ASM (\texttt{ag(posti >= 0)} e \texttt{ag(posti <= 1)}, cfr.\
+\S\ref{sec:asmetav-vc}): la stessa proprietà viene così garantita su tre livelli
+(modello, contratto, test).
+
+\begin{lstlisting}[style=terminal, caption={Invarianti di classe}]
+//@ public invariant 0 <= postiStd && postiStd <= MAX_STD;
+private /*@ spec_public @*/ int postiStd;
+
+//@ public invariant 0 <= postiDis && postiDis <= MAX_DIS;
+private /*@ spec_public @*/ int postiDis;
+\end{lstlisting}
+
+\subsection{Costruttori}
+
+Per i costruttori i contratti creati sono i seguenti:
+
+\begin{itemize}
+\item il costruttore di default garantisce (\texttt{ensures}) lo stato iniziale del
+modello ASM: tutti i posti liberi (\texttt{postiStd == MAX\_STD},
+\texttt{postiDis == MAX\_DIS});
+\item il costruttore con parametri (usato nei test combinatori e MC/DC per
+costruire configurazioni arbitrarie) \emph{richiede} (\texttt{requires}) che i
+valori iniziali siano già dentro i limiti dell'invariante, e garantisce che i campi
+vengano inizializzati esattamente con i valori passati;
+\item la violazione della precondizione è anche gestita difensivamente a runtime
+con \texttt{IllegalArgumentException}, comportamento verificato in
+\texttt{ParcheggioTest} con \texttt{assertThrows}.
+\end{itemize}
+
+\begin{lstlisting}[style=terminal, caption={Contratti dei costruttori}]
+//@ ensures postiStd == MAX_STD && postiDis == MAX_DIS;
+public Parcheggio() { ... }
+
+//@ requires 0 <= postiStdIniziali && postiStdIniziali <= MAX_STD;
+//@ requires 0 <= postiDisIniziali && postiDisIniziali <= MAX_DIS;
+//@ ensures postiStd == postiStdIniziali && postiDis == postiDisIniziali;
+public Parcheggio(int postiStdIniziali, int postiDisIniziali) { ... }
+\end{lstlisting}
+
+\subsection{Metodo \texttt{assegnaPosto}}
+
+È il metodo con il contratto più ricco, perché replica la logica di assegnazione di
+\texttt{r\_gestione\_VER}. I contratti creati sono i seguenti:
+
+\begin{itemize}
+\item viene richiesto che l'utente non sia \texttt{null};
+\item per gli utenti STD e ABBONATO la postcondizione descrive i due esiti
+possibili in funzione dello stato \emph{precedente} (\texttt{\textbackslash old}):
+se c'era un posto standard libero il risultato è \texttt{POSTO\_STD} e il contatore
+è decrementato di 1; altrimenti il risultato è \texttt{NESSUNO} e nulla cambia;
+\item per gli utenti DISABILE la postcondizione descrive i tre esiti possibili:
+posto disabile se disponibile; altrimenti \emph{fallback} su un posto standard se
+disponibile; altrimenti \texttt{NESSUNO} senza modifiche;
+\item in ogni esito viene anche vincolato che il contatore ``dell'altro'' tipo di
+posto resti invariato: la postcondizione è cioè \emph{completa}, non lascia
+comportamenti sottospecificati.
+\end{itemize}
+
+\begin{lstlisting}[style=terminal, caption={Contratto di assegnaPosto}]
+//@ requires utente != null;
+//@ ensures (utente == TipoUtente.STD || utente == TipoUtente.ABBONATO) ==>
+//@     ((\old(postiStd) > 0 && \result == TipoPosto.POSTO_STD
+//@       && postiStd == \old(postiStd) - 1 && postiDis == \old(postiDis))
+//@      || (\old(postiStd) == 0 && \result == TipoPosto.NESSUNO
+//@       && postiStd == \old(postiStd) && postiDis == \old(postiDis)));
+//@ ensures utente == TipoUtente.DISABILE ==>
+//@     ((\old(postiDis) > 0 && \result == TipoPosto.POSTO_DIS
+//@       && postiDis == \old(postiDis) - 1 && postiStd == \old(postiStd))
+//@      || (\old(postiDis) == 0 && \old(postiStd) > 0
+//@       && \result == TipoPosto.POSTO_STD
+//@       && postiStd == \old(postiStd) - 1 && postiDis == \old(postiDis))
+//@      || (\old(postiDis) == 0 && \old(postiStd) == 0
+//@       && \result == TipoPosto.NESSUNO
+//@       && postiStd == \old(postiStd) && postiDis == \old(postiDis)));
+public TipoPosto assegnaPosto(TipoUtente utente) { ... }
+\end{lstlisting}
+
+\subsection{Metodo \texttt{liberaPosto}}
+
+Corrisponde al rilascio del posto in \texttt{r\_gestione\_USC}. I contratti creati
+sono i seguenti:
+
+\begin{itemize}
+\item viene richiesto che il posto non sia \texttt{null};
+\item viene richiesto che il contatore corrispondente al posto da liberare non sia
+già al massimo: senza questa precondizione l'incremento violerebbe l'invariante
+superiore (non si possono ``inventare'' posti oltre la capacità);
+\item le postcondizioni garantiscono l'incremento di 1 del solo contatore
+corrispondente, e che con \texttt{NESSUNO} lo stato resti del tutto invariato.
+\end{itemize}
+
+\begin{lstlisting}[style=terminal, caption={Contratto di liberaPosto}]
+//@ requires posto != null;
+//@ requires posto == TipoPosto.POSTO_STD ==> postiStd < MAX_STD;
+//@ requires posto == TipoPosto.POSTO_DIS ==> postiDis < MAX_DIS;
+//@ ensures posto == TipoPosto.POSTO_STD ==>
+//@     postiStd == \old(postiStd) + 1 && postiDis == \old(postiDis);
+//@ ensures posto == TipoPosto.POSTO_DIS ==>
+//@     postiDis == \old(postiDis) + 1 && postiStd == \old(postiStd);
+//@ ensures posto == TipoPosto.NESSUNO ==>
+//@     postiStd == \old(postiStd) && postiDis == \old(postiDis);
+public void liberaPosto(TipoPosto posto) { ... }
+\end{lstlisting}
+
+\subsection{Metodi getter}
+
+I getter sono annotati \texttt{/*@ pure @*/} (nessun effetto collaterale):
+condizione necessaria per poterli usare all'interno delle clausole JML stesse. La
+postcondizione garantisce che restituiscano esattamente il valore del campo.
+
+\begin{lstlisting}[style=terminal, caption={Getter puri}]
+//@ ensures \result == postiStd;
+public /*@ pure @*/ int getPostiStd() { ... }
+
+//@ ensures \result == postiDis;
+public /*@ pure @*/ int getPostiDis() { ... }
+\end{lstlisting}
+
+\subsection{Verifica dei contratti con OpenJML (ESC)}
+
+I contratti sono stati verificati staticamente con OpenJML (release 21.0.27, build
+nativa macOS arm64) in modalità \texttt{--esc}: per ogni metodo il tool traduce
+codice e contratti in condizioni logiche e usa il solver SMT (Z3) per dimostrare che
+\emph{ogni} possibile esecuzione rispetta postcondizioni e invarianti — a differenza
+del testing, che esplora solo casi specifici. Il comando, dalla root del progetto:
+
+\begin{lstlisting}[style=terminal, caption={Comando di verifica ESC}]
+$ openjml --esc --progress \
+    -cp java/src/main/java \
+    java/src/main/java/it/tvsw/smartparking/core/Parcheggio.java
+\end{lstlisting}
+
+\screenshot{openjml_esc_output}{Output di \texttt{openjml --esc}: tutti i metodi Verified}{%
+Eseguire il comando sopra da terminale. Lo screenshot deve mostrare l'esito
+``Verified'' per tutti e sei i metodi di \texttt{Parcheggio} (2 costruttori,
+\texttt{assegnaPosto}, \texttt{liberaPosto}, 2 getter), senza righe ``cannot be
+proved''.}

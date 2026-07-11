@@ -1,0 +1,84 @@
+\section{Analisi statica e ispezione del codice con LLM}
+\label{sec:analisi-statica}
+
+Come indicato dalla consegna (``con chatgpt o LLM in generale''), l'ispezione del
+codice è stata condotta come \textbf{code review critica eseguita da un LLM}
+(Claude), a cui è stato fornito l'intero sorgente del progetto (package
+\texttt{core} e \texttt{ui}) con la richiesta di individuare, riga per riga: naming
+poco chiaro, casi limite non gestiti, possibili \texttt{NullPointerException},
+incoerenze rispetto al modello ASM e debolezze di design. Ogni osservazione emersa
+è stata poi \emph{valutata criticamente} — non applicata alla cieca — decidendo se
+correggerla, mitigarla o accettarla documentandola, come in una vera code review.
+
+\subsection{Checklist preliminare}
+
+\begin{itemize}
+    \item[$\checkmark$] La funzionalità descritta nei requisiti è pienamente implementata dal codice.
+    \item[$\checkmark$] Tutte le variabili sono inizializzate prima dell'uso (i costruttori di \texttt{Parcheggio} validano i parametri).
+    \item[$\checkmark$] Gli enum (\texttt{TipoUtente}, \texttt{TipoPosto}, \texttt{StatoSistema}) sono confrontati con \texttt{==}, corretto per gli enum Java.
+    \item[$\checkmark$] Lo \texttt{switch} in \texttt{SmartParkingFSM.step} ha un ramo \texttt{default} che lancia eccezione su stato non gestito.
+    \item[$\checkmark$] Le eccezioni di precondizione (\texttt{IllegalArgumentException}, \texttt{IllegalStateException}) sono usate coerentemente per segnalare violazioni di contratto.
+\end{itemize}
+
+\subsection{Osservazioni emerse e come sono state gestite}
+\label{sec:llm-review}
+
+\begin{enumerate}
+    \item \textbf{Validazione mancante di \texttt{utenteRilevato==null} in CHK\_OUT}:
+    il confronto restituisce silenziosamente \texttt{false}, portando il sistema in
+    USC come se l'utente non fosse STD. \emph{Gestione}: accettata per fedeltà
+    all'ASM (il dominio \texttt{TipoUtente} non modella l'assenza di dato);
+    mitigata dal fatto che tutti i punti di chiamata impostano sempre l'utente.
+
+    \item \textbf{\texttt{TipoPosto.NESSUNO} con doppio significato} (``nessun posto
+    disponibile'' in \texttt{assegnaPosto} / ``no-op'' in \texttt{liberaPosto}).
+    \emph{Gestione}: chiarita via Javadoc invece di introdurre un tipo separato che
+    avrebbe appesantito una classe volutamente semplice.
+
+    \item \textbf{\texttt{liberaPosto} lancia eccezione se il contatore è già al
+    massimo}. \emph{Gestione}: mantenuta come scelta ``fail fast'': meglio un crash
+    diagnosticabile che un contatore silenziosamente oltre la capacità (violazione
+    dell'invariante di safety); comportamento coperto da test dedicato.
+
+    \item \textbf{Scostamento temporale nel decremento dei contatori rispetto
+    all'ASM}: \texttt{assegnaPosto} decide e decrementa nello stesso passo, l'ASM
+    decrementa al transito (INGR). \emph{Gestione}: differenza non osservabile in
+    alcuno scenario di test; scelta la versione più semplice, documentata nel
+    Javadoc di classe.
+
+    \item \textbf{Assenza di thread-safety}. \emph{Gestione}: accettata — un solo
+    varco pilotato da una FSM sequenziale, come nel modello ASM; annotata come
+    limite per estensioni multi-varco.
+
+    \item \textbf{Memoria a slot singolo per \texttt{posto\_assegnato} — difetto
+    presente anche nel modello ASM}. È l'osservazione più rilevante: sia la FSM
+    Java sia l'ASM memorizzano \emph{un solo} posto assegnato, ma il parcheggio
+    può contenere due veicoli (1 STD + 1 DIS). Se entra uno STD, poi un DISABILE
+    (che sovrascrive lo slot), e il \emph{primo} veicolo esce, viene rilasciato il
+    posto sbagliato, corrompendo i contatori. \emph{Gestione}: l'implementazione è
+    \emph{conforme alla specifica} — è la specifica a presupporre implicitamente
+    ``un veicolo tracciato per volta'' senza associazione veicolo$\to$posto.
+    Documentato come limite noto \emph{della specifica}; correggerlo richiederebbe
+    una mappa veicolo$\to$posto a entrambi i livelli. È un esempio concreto di
+    difetto che il testing di conformità non può rilevare (il codice rispetta il
+    modello) e che emerge solo dall'ispezione critica.
+
+    \item \textbf{Bottoni della UI sempre attivi}: \texttt{MainView} non disabilita
+    i comandi in base allo stato (si può cliccare ``Pagamento'' in IDLE). Gli step
+    spuri risultano però innocui perché assorbiti dai self-loop della FSM — gli
+    stessi \texttt{if} senza \texttt{else} segnalati dal Model Advisor come MP2
+    (\S\ref{sec:asmetav-vc}), che questa osservazione conferma a posteriori come
+    scelta difensiva corretta. \emph{Gestione}: accettata per un prototipo;
+    annotata la soluzione (\texttt{setEnabled} contestuale) per una versione reale.
+\end{enumerate}
+
+\subsection{Bilancio dell'ispezione}
+
+L'ispezione LLM ha prodotto 7 osservazioni: nessun bug da correggere nel codice
+(2 mitigazioni documentali via Javadoc), ma ha individuato un \textbf{difetto
+latente nella specifica stessa} (osservazione 6) invisibile sia al testing di
+conformità sia alla verifica ESC — i contratti JML di \texttt{Parcheggio} sono
+rispettati anche nell'esecuzione che rilascia il posto sbagliato, perché il difetto
+sta a livello di FSM/modello. Questo complementa gli altri livelli di verifica del
+progetto: model checking e ESC dimostrano ciò che è formalizzato, l'ispezione trova
+ciò che la formalizzazione non cattura.

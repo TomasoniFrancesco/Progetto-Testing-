@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="it"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Parcheggio.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SmartParking</a> &gt; <a href="index.source.html" class="el_package">it.tvsw.smartparking.core</a> &gt; <span class="el_source">Parcheggio.java</span></div><h1>Parcheggio.java</h1><pre class="source lang-java linenums">package it.tvsw.smartparking.core;
+
+/**
+ * Nucleo puro del dominio SmartParking: gestisce il conteggio dei posti liberi
+ * standard e disabili e la logica di assegnazione/rilascio, corrispondente alla
+ * logica della regola {@code r_gestione_VER} del modello ASM (per l'assegnazione)
+ * e delle regole {@code r_gestione_INGR} / {@code r_gestione_USC} (per il
+ * decremento/incremento dei contatori).
+ *
+ * &lt;p&gt;Classe senza dipendenze esterne, con contratti JML pensati per essere
+ * verificati staticamente (ESC) con OpenJML: vedi {@code docs/03_jml.md}.&lt;/p&gt;
+ *
+ * &lt;p&gt;Semplificazione rispetto al modello ASM: qui l'assegnazione del posto
+ * ({@link #assegnaPosto(TipoUtente)}) decide E decrementa il contatore in un
+ * unico passo atomico, mentre nell'ASM la decisione avviene in VER e il
+ * decremento solo al transito effettivo in INGR. La differenza non è
+ * osservabile dagli scenari di test del progetto (nessun controllo intermedio
+ * tra i due passi) ed è stata scelta per mantenere la classe più semplice.&lt;/p&gt;
+ */
+public class Parcheggio {
+
+    /** Capacita' massima dei posti standard (allineata all'init dell'ASM: posti_std = 1). */
+    public static final int MAX_STD = 1;
+
+    /** Capacita' massima dei posti disabili (allineata all'init dell'ASM: posti_dis = 1). */
+    public static final int MAX_DIS = 1;
+
+    //@ public invariant 0 &lt;= postiStd &amp;&amp; postiStd &lt;= MAX_STD;
+    private /*@ spec_public @*/ int postiStd;
+
+    //@ public invariant 0 &lt;= postiDis &amp;&amp; postiDis &lt;= MAX_DIS;
+    private /*@ spec_public @*/ int postiDis;
+
+    /**
+     * Crea un parcheggio con tutti i posti liberi (stato iniziale del modello ASM).
+     */
+    //@ ensures postiStd == MAX_STD &amp;&amp; postiDis == MAX_DIS;
+    public Parcheggio() {
+<span class="fc" id="L39">        this(MAX_STD, MAX_DIS);</span>
+<span class="fc" id="L40">    }</span>
+
+    /**
+     * Crea un parcheggio con un numero di posti liberi arbitrario (usato nei test,
+     * ad esempio per il testing combinatorio e MC/DC).
+     *
+     * @param postiStdIniziali posti standard liberi iniziali, 0..MAX_STD
+     * @param postiDisIniziali posti disabili liberi iniziali, 0..MAX_DIS
+     */
+    //@ requires 0 &lt;= postiStdIniziali &amp;&amp; postiStdIniziali &lt;= MAX_STD;
+    //@ requires 0 &lt;= postiDisIniziali &amp;&amp; postiDisIniziali &lt;= MAX_DIS;
+    //@ ensures postiStd == postiStdIniziali &amp;&amp; postiDis == postiDisIniziali;
+<span class="fc" id="L52">    public Parcheggio(int postiStdIniziali, int postiDisIniziali) {</span>
+<span class="fc bfc" id="L53" title="All 4 branches covered.">        if (postiStdIniziali &lt; 0 || postiStdIniziali &gt; MAX_STD) {</span>
+<span class="fc" id="L54">            throw new IllegalArgumentException(&quot;postiStdIniziali fuori range: &quot; + postiStdIniziali);</span>
+        }
+<span class="fc bfc" id="L56" title="All 4 branches covered.">        if (postiDisIniziali &lt; 0 || postiDisIniziali &gt; MAX_DIS) {</span>
+<span class="fc" id="L57">            throw new IllegalArgumentException(&quot;postiDisIniziali fuori range: &quot; + postiDisIniziali);</span>
+        }
+<span class="fc" id="L59">        this.postiStd = postiStdIniziali;</span>
+<span class="fc" id="L60">        this.postiDis = postiDisIniziali;</span>
+<span class="fc" id="L61">    }</span>
+
+    /**
+     * Assegna un posto in base al tipo di utente, replicando la logica di
+     * {@code r_gestione_VER}: STD/ABBONATO ricevono un posto standard se
+     * disponibile; DISABILE riceve un posto disabile se disponibile, altrimenti
+     * un posto standard come fallback. Se nessun posto e' disponibile, restituisce
+     * {@link TipoPosto#NESSUNO} e non modifica i contatori.
+     *
+     * @param utente il tipo di utente rilevato, non nullo
+     * @return il tipo di posto assegnato, oppure NESSUNO se non c'e' posto
+     */
+    //@ requires utente != null;
+    //@ ensures (utente == TipoUtente.STD || utente == TipoUtente.ABBONATO) ==&gt;
+    //@     ((\old(postiStd) &gt; 0 &amp;&amp; \result == TipoPosto.POSTO_STD &amp;&amp; postiStd == \old(postiStd) - 1 &amp;&amp; postiDis == \old(postiDis))
+    //@      || (\old(postiStd) == 0 &amp;&amp; \result == TipoPosto.NESSUNO &amp;&amp; postiStd == \old(postiStd) &amp;&amp; postiDis == \old(postiDis)));
+    //@ ensures utente == TipoUtente.DISABILE ==&gt;
+    //@     ((\old(postiDis) &gt; 0 &amp;&amp; \result == TipoPosto.POSTO_DIS &amp;&amp; postiDis == \old(postiDis) - 1 &amp;&amp; postiStd == \old(postiStd))
+    //@      || (\old(postiDis) == 0 &amp;&amp; \old(postiStd) &gt; 0 &amp;&amp; \result == TipoPosto.POSTO_STD &amp;&amp; postiStd == \old(postiStd) - 1 &amp;&amp; postiDis == \old(postiDis))
+    //@      || (\old(postiDis) == 0 &amp;&amp; \old(postiStd) == 0 &amp;&amp; \result == TipoPosto.NESSUNO &amp;&amp; postiStd == \old(postiStd) &amp;&amp; postiDis == \old(postiDis)));
+    public TipoPosto assegnaPosto(TipoUtente utente) {
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (utente == null) {</span>
+<span class="fc" id="L83">            throw new IllegalArgumentException(&quot;utente non puo' essere null&quot;);</span>
+        }
+<span class="fc bfc" id="L85" title="All 4 branches covered.">        if (utente == TipoUtente.STD || utente == TipoUtente.ABBONATO) {</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">            if (postiStd &gt; 0) {</span>
+<span class="fc" id="L87">                postiStd = postiStd - 1;</span>
+<span class="fc" id="L88">                return TipoPosto.POSTO_STD;</span>
+            }
+<span class="fc" id="L90">            return TipoPosto.NESSUNO;</span>
+        }
+        // utente == DISABILE: priorita' al posto disabile, poi fallback su standard
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (postiDis &gt; 0) {</span>
+<span class="fc" id="L94">            postiDis = postiDis - 1;</span>
+<span class="fc" id="L95">            return TipoPosto.POSTO_DIS;</span>
+        }
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        if (postiStd &gt; 0) {</span>
+<span class="fc" id="L98">            postiStd = postiStd - 1;</span>
+<span class="fc" id="L99">            return TipoPosto.POSTO_STD;</span>
+        }
+<span class="fc" id="L101">        return TipoPosto.NESSUNO;</span>
+    }
+
+    /**
+     * Libera un posto precedentemente assegnato, incrementando il contatore
+     * corrispondente (regola {@code r_gestione_USC}). Se {@code posto} e'
+     * {@link TipoPosto#NESSUNO} non fa nulla.
+     *
+     * @param posto il tipo di posto da liberare
+     */
+    //@ requires posto != null;
+    //@ requires posto == TipoPosto.POSTO_STD ==&gt; postiStd &lt; MAX_STD;
+    //@ requires posto == TipoPosto.POSTO_DIS ==&gt; postiDis &lt; MAX_DIS;
+    //@ ensures posto == TipoPosto.POSTO_STD ==&gt; postiStd == \old(postiStd) + 1 &amp;&amp; postiDis == \old(postiDis);
+    //@ ensures posto == TipoPosto.POSTO_DIS ==&gt; postiDis == \old(postiDis) + 1 &amp;&amp; postiStd == \old(postiStd);
+    //@ ensures posto == TipoPosto.NESSUNO ==&gt; postiStd == \old(postiStd) &amp;&amp; postiDis == \old(postiDis);
+    public void liberaPosto(TipoPosto posto) {
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (posto == null) {</span>
+<span class="fc" id="L119">            throw new IllegalArgumentException(&quot;posto non puo' essere null&quot;);</span>
+        }
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (posto == TipoPosto.POSTO_STD) {</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">            if (postiStd &gt;= MAX_STD) {</span>
+<span class="fc" id="L123">                throw new IllegalStateException(&quot;posti_std e' gia' al massimo: impossibile liberare&quot;);</span>
+            }
+<span class="fc" id="L125">            postiStd = postiStd + 1;</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        } else if (posto == TipoPosto.POSTO_DIS) {</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">            if (postiDis &gt;= MAX_DIS) {</span>
+<span class="fc" id="L128">                throw new IllegalStateException(&quot;posti_dis e' gia' al massimo: impossibile liberare&quot;);</span>
+            }
+<span class="fc" id="L130">            postiDis = postiDis + 1;</span>
+        }
+        // TipoPosto.NESSUNO -&gt; nessuna operazione
+<span class="fc" id="L133">    }</span>
+
+    //@ ensures \result == postiStd;
+    public /*@ pure @*/ int getPostiStd() {
+<span class="fc" id="L137">        return postiStd;</span>
+    }
+
+    //@ ensures \result == postiDis;
+    public /*@ pure @*/ int getPostiDis() {
+<span class="fc" id="L142">        return postiDis;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

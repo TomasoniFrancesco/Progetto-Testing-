@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="it"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SmartParkingFSM.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SmartParking</a> &gt; <a href="index.source.html" class="el_package">it.tvsw.smartparking.core</a> &gt; <span class="el_source">SmartParkingFSM.java</span></div><h1>SmartParkingFSM.java</h1><pre class="source lang-java linenums">package it.tvsw.smartparking.core;
+
+/**
+ * Macchina a stati che replica la main rule {@code r_Main} del modello ASM
+ * ({@code src/SmartParking.asm}): ad ogni chiamata di {@link #step(SensorInput)}
+ * viene eseguita la regola di gestione corrispondente allo stato corrente,
+ * esattamente come nel modello (un solo ramo dello switch e' attivo per step,
+ * come nell'{@code if stato = X then ... endif} dentro il {@code par} dell'ASM).
+ */
+public class SmartParkingFSM {
+
+    private StatoSistema stato;
+    private TipoPosto postoAssegnato;
+    private final Parcheggio parcheggio;
+    private final Display display;
+
+    public SmartParkingFSM(Display display) {
+<span class="fc" id="L18">        this(new Parcheggio(), display);</span>
+<span class="fc" id="L19">    }</span>
+
+<span class="fc" id="L21">    public SmartParkingFSM(Parcheggio parcheggio, Display display) {</span>
+<span class="fc bfc" id="L22" title="All 2 branches covered.">        if (parcheggio == null) {</span>
+<span class="fc" id="L23">            throw new IllegalArgumentException(&quot;parcheggio non puo' essere null&quot;);</span>
+        }
+<span class="fc" id="L25">        this.parcheggio = parcheggio;</span>
+<span class="fc" id="L26">        this.display = display;</span>
+<span class="fc" id="L27">        this.stato = StatoSistema.IDLE;</span>
+<span class="fc" id="L28">        this.postoAssegnato = TipoPosto.NESSUNO;</span>
+<span class="fc" id="L29">    }</span>
+
+    public StatoSistema getStato() {
+<span class="fc" id="L32">        return stato;</span>
+    }
+
+    public TipoPosto getPostoAssegnato() {
+<span class="fc" id="L36">        return postoAssegnato;</span>
+    }
+
+    public int getPostiStd() {
+<span class="fc" id="L40">        return parcheggio.getPostiStd();</span>
+    }
+
+    public int getPostiDis() {
+<span class="fc" id="L44">        return parcheggio.getPostiDis();</span>
+    }
+
+    /**
+     * Esegue un passo della macchina a stati con gli input monitorati correnti.
+     *
+     * @param input i 6 input monitorati per questo step
+     */
+    public void step(SensorInput input) {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (input == null) {</span>
+<span class="fc" id="L54">            throw new IllegalArgumentException(&quot;input non puo' essere null&quot;);</span>
+        }
+<span class="pc bpc" id="L56" title="1 of 9 branches missed.">        switch (stato) {</span>
+            case IDLE:
+<span class="fc" id="L58">                gestisciIdle(input);</span>
+<span class="fc" id="L59">                break;</span>
+            case CHK_IN:
+<span class="fc" id="L61">                gestisciChkIn();</span>
+<span class="fc" id="L62">                break;</span>
+            case VER:
+<span class="fc" id="L64">                gestisciVer(input);</span>
+<span class="fc" id="L65">                break;</span>
+            case NEG:
+<span class="fc" id="L67">                gestisciNeg(input);</span>
+<span class="fc" id="L68">                break;</span>
+            case INGR:
+<span class="fc" id="L70">                gestisciIngr(input);</span>
+<span class="fc" id="L71">                break;</span>
+            case CHK_OUT:
+<span class="fc" id="L73">                gestisciChkOut(input);</span>
+<span class="fc" id="L74">                break;</span>
+            case TARIF:
+<span class="fc" id="L76">                gestisciTarif(input);</span>
+<span class="fc" id="L77">                break;</span>
+            case USC:
+<span class="fc" id="L79">                gestisciUsc(input);</span>
+<span class="fc" id="L80">                break;</span>
+            default:
+<span class="nc" id="L82">                throw new IllegalStateException(&quot;Stato non gestito: &quot; + stato);</span>
+        }
+<span class="fc" id="L84">    }</span>
+
+    private void cambiaStato(StatoSistema nuovoStato, String messaggio) {
+<span class="fc" id="L87">        this.stato = nuovoStato;</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (display != null) {</span>
+<span class="fc" id="L89">            display.mostra(messaggio);</span>
+        }
+<span class="fc" id="L91">    }</span>
+
+    // r_gestione_IDLE
+    private void gestisciIdle(SensorInput input) {
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (input.isSensIn()) {</span>
+<span class="fc" id="L96">            cambiaStato(StatoSistema.CHK_IN, &quot;Veicolo rilevato in ingresso&quot;);</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        } else if (input.isSensOut()) {</span>
+<span class="fc" id="L98">            cambiaStato(StatoSistema.CHK_OUT, &quot;Veicolo rilevato in uscita&quot;);</span>
+        }
+<span class="fc" id="L100">    }</span>
+
+    // r_gestione_CHK_IN
+    private void gestisciChkIn() {
+<span class="fc" id="L104">        cambiaStato(StatoSistema.VER, &quot;Verifica utente in corso&quot;);</span>
+<span class="fc" id="L105">    }</span>
+
+    // r_gestione_VER
+    private void gestisciVer(SensorInput input) {
+<span class="fc" id="L109">        TipoPosto posto = parcheggio.assegnaPosto(input.getUtenteRilevato());</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        if (posto != TipoPosto.NESSUNO) {</span>
+<span class="fc" id="L111">            postoAssegnato = posto;</span>
+<span class="fc" id="L112">            cambiaStato(StatoSistema.INGR, &quot;Sbarra aperta&quot;);</span>
+<span class="fc" id="L113">        } else {</span>
+<span class="fc" id="L114">            cambiaStato(StatoSistema.NEG, &quot;Accesso negato&quot;);</span>
+        }
+<span class="fc" id="L116">    }</span>
+
+    // r_gestione_NEG
+    private void gestisciNeg(SensorInput input) {
+<span class="fc bfc" id="L120" title="All 2 branches covered.">        if (input.isAutoVia()) {</span>
+<span class="fc" id="L121">            cambiaStato(StatoSistema.IDLE, &quot;Sistema pronto&quot;);</span>
+        }
+<span class="fc" id="L123">    }</span>
+
+    // r_gestione_INGR (il decremento e' gia' avvenuto in VER, vedi Parcheggio)
+    private void gestisciIngr(SensorInput input) {
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        if (input.isTransitoOk()) {</span>
+<span class="fc" id="L128">            cambiaStato(StatoSistema.IDLE, &quot;Sistema pronto&quot;);</span>
+        }
+<span class="fc" id="L130">    }</span>
+
+    // r_gestione_CHK_OUT
+    private void gestisciChkOut(SensorInput input) {
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        if (input.getUtenteRilevato() == TipoUtente.STD) {</span>
+<span class="fc" id="L135">            cambiaStato(StatoSistema.TARIF, &quot;In attesa di pagamento&quot;);</span>
+<span class="fc" id="L136">        } else {</span>
+<span class="fc" id="L137">            cambiaStato(StatoSistema.USC, &quot;Sbarra di uscita aperta&quot;);</span>
+        }
+<span class="fc" id="L139">    }</span>
+
+    // r_gestione_TARIF
+    private void gestisciTarif(SensorInput input) {
+<span class="fc bfc" id="L143" title="All 2 branches covered.">        if (input.isPagamentoOk()) {</span>
+<span class="fc" id="L144">            cambiaStato(StatoSistema.USC, &quot;Sbarra di uscita aperta&quot;);</span>
+        }
+<span class="fc" id="L146">    }</span>
+
+    // r_gestione_USC
+    private void gestisciUsc(SensorInput input) {
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (input.isTransitoOk()) {</span>
+<span class="fc" id="L151">            parcheggio.liberaPosto(postoAssegnato);</span>
+<span class="fc" id="L152">            postoAssegnato = TipoPosto.NESSUNO;</span>
+<span class="fc" id="L153">            cambiaStato(StatoSistema.IDLE, &quot;Sistema pronto&quot;);</span>
+        }
+<span class="fc" id="L155">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

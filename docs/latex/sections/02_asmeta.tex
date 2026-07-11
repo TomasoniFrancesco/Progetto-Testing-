@@ -1,0 +1,217 @@
+\section{Modello Asmeta}
+
+\subsection{Il modello (\texttt{asmeta/src/SmartParking.asm})}
+
+Il modello definisce tre domini enumerativi (\texttt{StatoSistema}, \texttt{TipoUtente},
+\texttt{TipoPosto}), sei funzioni monitorate (\texttt{sens\_in}, \texttt{sens\_out},
+\texttt{transito\_ok}, \texttt{auto\_via}, \texttt{utente\_rilevato},
+\texttt{pagamento\_ok}) e quattro funzioni controllate (\texttt{stato},
+\texttt{posti\_std}, \texttt{posti\_dis}, \texttt{posto\_assegnato}) e una funzione
+\textbf{derivata n-aria (binaria)} \texttt{assegnabile: Prod(TipoUtente, TipoPosto)
+$\to$ Boolean}, che centralizza la politica di assegnazione dei posti: \texttt{POSTO\_STD}
+è assegnabile a chiunque se \texttt{posti\_std > 0}, mentre \texttt{POSTO\_DIS} è
+riservato ai DISABILI se \texttt{posti\_dis > 0}. Essendo derivata, è ricalcolata a ogni
+stato a partire dalle funzioni controllate, senza occupare memoria di stato.
+
+\begin{lstlisting}[language=Pascal, caption={Funzione derivata assegnabile}]
+derived assegnabile: Prod(TipoUtente, TipoPosto) -> Boolean
+
+function assegnabile($u in TipoUtente, $p in TipoPosto) =
+    ($p = POSTO_STD and posti_std > 0) or
+    ($p = POSTO_DIS and $u = DISABILE and posti_dis > 0)
+\end{lstlisting}
+
+La regola più importante è \texttt{r\_gestione\_VER}, che decide l'assegnazione del
+posto usando una regola \textbf{\texttt{let}} e la derivata \texttt{assegnabile}:
+prova prima \texttt{POSTO\_DIS} (vero solo per un DISABILE con posti disabili liberi),
+poi \texttt{POSTO\_STD} (caso STD/ABBONATO e fallback del disabile a posti disabili
+esauriti), altrimenti nega l'accesso (NEG):
+
+\begin{lstlisting}[language=Pascal, caption={Regola r\_gestione\_VER (assegnazione posto, con let e derivata)}]
+rule r_gestione_VER =
+    let ($u = utente_rilevato) in
+        if assegnabile($u, POSTO_DIS) then
+            par
+                stato := INGR
+                posto_assegnato := POSTO_DIS
+            endpar
+        else
+            if assegnabile($u, POSTO_STD) then
+                par
+                    stato := INGR
+                    posto_assegnato := POSTO_STD
+                endpar
+            else
+                stato := NEG
+            endif
+        endif
+    endlet
+\end{lstlisting}
+
+Il modello semplificato per il model checking (\texttt{SmartParking\_MC.asm})
+mantiene invece la versione ``appiattita'' a if annidati, comportamentalmente
+identica, per massimizzare la compatibilità della traduzione AsmetaSMV $\to$ NuSMV.
+Sempre per esigenze di traduzione, nel modello MC i contatori sono dichiarati su un
+dominio concreto finito \texttt{Posti = \{0..2\}} anziché su \texttt{Integer}
+(AsmetaSMV rifiuta i domini infiniti); la scelta di \texttt{\{0..2\}} rende le
+proprietà \texttt{ag(posti\_std <= 1)} e \texttt{ag(posti\_dis <= 1)} verifiche
+autentiche e non tautologie di tipo.
+
+\subsubsection{Simulazione manuale}
+
+Per prendere confidenza col modello, prima di lanciare gli scenari automatici è utile
+simulare a mano un paio di step con il simulatore Asmeta.
+
+\screenshot{asmeta_simulator_ingresso_std}{Simulatore -- ingresso STD completo}{%
+Aprire \texttt{asmeta/src/SmartParking.asm} in Eclipse e lanciare il simulatore
+interattivo. Impostare \texttt{sens\_in=true}, fare Step, poi \texttt{utente\_rilevato=STD}
+e proseguire (CHK\_IN$\to$VER, VER$\to$INGR), infine \texttt{transito\_ok=true} e Step.
+Lo screenshot deve mostrare la sequenza di stati IDLE$\to$CHK\_IN$\to$VER$\to$INGR$\to$IDLE
+con \texttt{posti\_std} che passa da 1 a 0. La colonna State~0 documenta anche lo stato
+iniziale (\texttt{stato=IDLE}, sensori a false); si noti che l'animatore mostra le
+funzioni solo dal primo stato in cui vengono lette o aggiornate.}
+
+\screenshot{asmeta_simulator_uscita_std}{Simulatore -- uscita STD con pagamento}{%
+Proseguendo nella stessa sessione: \texttt{sens\_out=true} $\to$ CHK\_OUT, utente STD
+$\to$ TARIF, \texttt{pagamento\_ok=true} $\to$ USC, \texttt{transito\_ok=true} $\to$
+IDLE. Lo screenshot deve mostrare il passaggio per TARIF (pagamento) e lo stato finale
+con \texttt{posti\_std} tornato a 1 e \texttt{posto\_assegnato = NESSUNO}.}
+
+\subsection{Scenari Avalla}
+
+\begin{longtable}{@{}p{4.2cm}p{8.8cm}@{}}
+\toprule
+\textbf{Scenario} & \textbf{Obiettivo} \\
+\midrule
+\endhead
+\texttt{test\_abbonato.avalla} & Ciclo completo ABBONATO: ingresso senza pagamento, uscita diretta (salta TARIF). Bug originale corretto: init \texttt{posti\_std} non era 5 ma 1, e lo stato \texttt{PARK} non esiste (è \texttt{IDLE}). \\
+\texttt{test\_disabile.avalla} & Ciclo DISABILE: assegnazione POSTO\_DIS, \texttt{posto\_assegnato} resta POSTO\_DIS durante la sosta, azzerato solo in uscita. \\
+\texttt{test\_pieno.avalla} & Un utente STD occupa l'unico posto; un secondo STD viene respinto (NEG). \\
+\texttt{test\_disabile\_fallback.avalla} & Copre il fallback: un secondo DISABILE, con \texttt{posti\_dis=0}, riceve POSTO\_STD. \\
+\texttt{test\_pagamento\_std.avalla} & Ciclo di uscita STD con un pagamento fallito (resta in TARIF) seguito da uno riuscito. \\
+\texttt{test\_pieno\_totale.avalla} & Parcheggio completamente saturo (STD + DISABILE), un terzo utente DISABILE viene respinto. \\
+\texttt{test\_random\_30steps.avalla} & Scenario \emph{generato automaticamente}: 30 step random eseguiti nel simulatore ed esportati con ``export to avalla'' (saturazione del parcheggio, doppio NEG, ciclo di pagamento TARIF, rientro). \\
+\bottomrule
+\end{longtable}
+
+\screenshot{asmeta_animator_test_abbonato}{Animazione di test\_abbonato.avalla}{%
+Eseguire lo scenario nell'animatore Asmeta. La tabella degli stati deve mostrare la
+fase di uscita dell'ABBONATO: CHK\_OUT $\to$ USC \emph{senza passare da TARIF}
+(nessun pagamento), con \texttt{posti\_std} che torna a 1 e \texttt{posto\_assegnato}
+azzerato a NESSUNO. L'esito dei \texttt{check} (tutti PASSED) è riportato dalla
+validazione AsmetaV in console.}
+
+\screenshot{asmeta_animator_test_disabile_fallback}{Animazione di test\_disabile\_fallback.avalla}{%
+Stessa procedura per lo scenario di fallback. Deve mostrare i due ingressi DISABILE
+consecutivi con l'assegnazione POSTO\_DIS poi POSTO\_STD (fallback), tutti i check verdi.}
+
+\screenshot{asmeta_animator_test_pieno_totale}{Animazione di test\_pieno\_totale.avalla}{%
+Stessa procedura per lo scenario di saturazione totale, con il rifiuto (NEG) del
+terzo utente e tutti i check verdi.}
+
+\subsection{AsmetaV -- validazione con copertura (Vc)}\label{sec:asmetav-vc}
+
+Gli scenari sono stati validati con \textbf{AsmetaV} in modalità \emph{validazione con
+calcolo della copertura} (l'opzione ``Vc'' richiesta dalla consegna): per ogni scenario
+il validatore, oltre a verificare i \texttt{check}, riporta in console l'insieme delle
+regole del modello esercitate (\emph{rule coverage}). L'unione delle regole coperte dai
+sei scenari manuali copre tutte le 8 regole di transizione, la main rule e tutti i rami
+di \texttt{r\_gestione\_VER}.
+
+Il confronto con gli scenari generati casualmente è istruttivo. Un primo export di
+15 step random copriva solo 6 regole su 9 (scoperte: \texttt{r\_gestione\_NEG},
+\texttt{r\_gestione\_TARIF}, \texttt{r\_gestione\_USC}); raddoppiando a 30 step
+(\texttt{test\_random\_30steps.avalla}) la \emph{rule coverage} raggiunge il 100\%,
+ma la \emph{branch coverage} resta incompleta (\texttt{r\_gestione\_USC} 33\%,
+\texttt{r\_gestione\_TARIF} 50\%, \texttt{r\_gestione\_IDLE} 75\%): ad esempio il
+ramo ``pagamento fallito'' di TARIF non viene mai esercitato per caso, ed è coperto
+solo dallo scenario mirato \texttt{test\_pagamento\_std}. La generazione random è
+quindi utile come complemento, ma non sostituisce gli scenari scritti a mano sui
+casi limite.
+
+\screenshot{asmetav_coverage_report}{Report di copertura AsmetaV (Vc)}{%
+Tasto destro su ciascun file \texttt{.avalla} $\to$ \textbf{ASMETA $\to$ Validate
+scenario and compute coverage} (voce con ``coverage''). Lo screenshot deve mostrare la
+console con l'esito dei check (PASSED) e l'elenco delle regole coperte; ripetere per
+tutti gli scenari e mostrare (anche cumulativamente) che tutte le regole risultano
+coperte.}
+
+\subsection{Model checking (\texttt{asmeta/src/SmartParking\_MC.asm})}
+
+Sono state definite 10 CTLSPEC (Tabella~\ref{tab:ctlspec}), suddivise in proprietà di
+sicurezza (safety), raggiungibilità e liveness.
+
+\begin{longtable}{@{}p{0.6cm}p{7.3cm}p{2.2cm}p{1.3cm}@{}}
+\toprule
+\textbf{\#} & \textbf{CTLSPEC} & \textbf{Categoria} & \textbf{Esito} \\
+\midrule
+\endhead
+1  & \texttt{ag(posti\_std >= 0)} & Safety & TRUE \\
+2  & \texttt{ag(posti\_dis >= 0)} & Safety & TRUE \\
+3  & \texttt{ef(stato = NEG)} & Raggiungibilità & TRUE \\
+4  & \texttt{ag((stato=INGR and posto\_assegnato=POSTO\_STD) implies posti\_std>0)} & Safety & TRUE \\
+5  & \texttt{ag(posti\_std <= 1)} & Safety & TRUE \\
+6  & \texttt{ag(posti\_dis <= 1)} & Safety & TRUE \\
+7  & \texttt{ag((stato=INGR and posto\_assegnato=POSTO\_DIS) implies posti\_dis>0)} & Safety & TRUE \\
+8  & \texttt{ef(stato = TARIF)} & Raggiungibilità & TRUE \\
+9  & \texttt{ef(stato = USC)} & Raggiungibilità & TRUE \\
+10 & \texttt{ag(stato=TARIF implies ef(stato=IDLE))} & Liveness & TRUE \\
+\bottomrule
+\caption{Le 10 CTLSPEC verificate con AsmetaSMV.}
+\label{tab:ctlspec}
+\end{longtable}
+
+\screenshot{asmetasmv_ctlspec_results}{Esito delle 10 CTLSPEC in AsmetaSMV}{%
+Tasto destro su \texttt{SmartParking\_MC.asm} $\to$ \textbf{Run As $\to$ AsmetaSMV}.
+Lo screenshot deve mostrare l'elenco delle 10 specifiche con esito \texttt{is true}
+per ciascuna (nessun controesempio). Se qualcuna risultasse \texttt{false}, allegare
+anche il controesempio generato e commentarlo.}
+
+\screenshot{asmetasmv_random_trace}{Esecuzione random-step di verifica manuale}{%
+Nella stessa vista AsmetaSMV, usare la funzione di simulazione random (random step)
+per generare una traccia di 8-10 stati. Utile per mostrare a voce, all'orale, che il
+modello si comporta coerentemente (nessuna transizione viola le regole).}
+
+\subsubsection{Model Advisor (opzionale)}
+
+Il Model Advisor (AsmetaMA) opera tramite la traduzione in NuSMV, quindi è stato
+eseguito su \texttt{SmartParking\_MC.asm} (il modello principale, con \texttt{Integer}
+e funzioni derivate, non è traducibile: ``Error Domain Integer not supported'').
+L'analisi delle meta-proprietà ha dato i seguenti esiti:
+
+\begin{itemize}
+\item \textbf{MP1, MP3, MP4, MP7 -- nessuna segnalazione}: nessun aggiornamento
+inconsistente, nessuna assegnazione banale, nessuna locazione rimuovibile o mai
+aggiornata.
+\item \textbf{MP2 -- ``conditional rule not complete''} su tutte le regole di
+transizione: sono \emph{falsi positivi consapevoli}. L'advisor segnala ogni
+\texttt{if} privo di \texttt{else}, ma in ASM l'assenza dell'else è idiomatica e
+significa ``nessun aggiornamento'': è esattamente il comportamento voluto per i
+self-loop della FSM (es.\ \texttt{r\_gestione\_NEG} resta in NEG finché
+\texttt{auto\_via} non diventa vero, \texttt{r\_gestione\_TARIF} resta in TARIF
+a pagamento fallito).
+\item \textbf{MP5/MP6 -- ``Domain Posti could be reduced: element \{2\} could be
+removed''}: non è un difetto ma una \emph{conferma}. Il dominio \texttt{Posti =
+\{0..2\}} è stato scelto deliberatamente più ampio del necessario: l'advisor
+dimostra che il valore 2 non è mai raggiunto da \texttt{posti\_std}/\texttt{posti\_dis},
+ovvero la proprietà di capacità \texttt{ag(posti <= 1)} verificata anche dalle
+CTLSPEC.
+\end{itemize}
+
+\screenshot{model_advisor_output}{Output del Model Advisor (estratto)}{%
+Tasto destro su \texttt{SmartParking\_MC.asm} $\to$ \textbf{Model Advisor}. È
+sufficiente un estratto rappresentativo della console: l'ideale è MP1 (nessun update
+inconsistente), le prime righe di MP2 e le segnalazioni MP5/MP6 sul dominio Posti;
+l'elenco completo delle MP2 è riassunto e discusso nel testo.}
+
+\subsubsection{ATGT -- generazione automatica di scenari (opzionale)}
+
+\screenshot{atgt_scenario_list}{Elenco degli scenari generati da ATGT}{%
+Tasto destro su \texttt{SmartParking.asm} $\to$ \textbf{Run As $\to$ ATGT}. Mostrare
+la lista dei file \texttt{.avalla} generati automaticamente nella cartella di output
+(uno screenshot dell'Explorer/Package Explorer di Eclipse con la cartella espansa).}
+
+Gli scenari generati (\texttt{asmeta/src/abstractests/testtest*.avalla}) sono
+consultabili direttamente nel repository; il loro ruolo, insieme allo scenario
+random da 30 step, è discusso nel confronto con gli scenari manuali in
+\S\ref{sec:asmetav-vc}.

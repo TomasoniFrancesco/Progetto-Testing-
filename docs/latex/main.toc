@@ -1,0 +1,41 @@
+\babel@toc {nil}{}\relax 
+\contentsline {section}{\numberline {1}Introduzione e requisiti}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Descrizione del sistema}{3}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Requisiti funzionali}{3}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Requisiti non funzionali}{4}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Macchina a stati}{4}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.5}Glossario}{4}{subsection.1.5}%
+\contentsline {section}{\numberline {2}Modello Asmeta}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Il modello (\texttt {asmeta/src/SmartParking.asm})}{5}{subsection.2.1}%
+\contentsline {subsubsection}{\numberline {2.1.1}Simulazione manuale}{6}{subsubsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.2}Scenari Avalla}{6}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}AsmetaV -- validazione con copertura (Vc)}{7}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Model checking (\texttt {asmeta/src/SmartParking\_MC.asm})}{8}{subsection.2.4}%
+\contentsline {subsubsection}{\numberline {2.4.1}Model Advisor (opzionale)}{9}{subsubsection.2.4.1}%
+\contentsline {subsubsection}{\numberline {2.4.2}ATGT -- generazione automatica di scenari (opzionale)}{9}{subsubsection.2.4.2}%
+\contentsline {section}{\numberline {3}Implementazione Java}{9}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Struttura del progetto Maven}{9}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}La macchina a stati}{10}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Interfaccia utente (Vaadin)}{12}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Test end-to-end con Selenium}{13}{subsection.3.4}%
+\contentsline {section}{\numberline {4}Testing Java}{15}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Struttura dei test}{15}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}MC/DC}{15}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Combinatorial testing (pairwise)}{15}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Mockito}{16}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Model Based Testing}{16}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}Esecuzione e copertura}{16}{subsection.4.6}%
+\contentsline {section}{\numberline {5}JML e verifica statica (ESC)}{17}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Invarianti}{18}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Costruttori}{18}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Metodo \texttt {assegnaPosto}}{18}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Metodo \texttt {liberaPosto}}{19}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Metodi getter}{20}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}Verifica dei contratti con OpenJML (ESC)}{20}{subsection.5.6}%
+\contentsline {section}{\numberline {6}Analisi statica e ispezione del codice con LLM}{20}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Checklist preliminare}{21}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Osservazioni emerse e come sono state gestite}{21}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Bilancio dell'ispezione}{22}{subsection.6.3}%
+\contentsline {section}{\numberline {7}Continuous Integration}{22}{section.7}%
+\contentsline {section}{\numberline {8}Conclusioni}{22}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Checklist finale delle evidenze da raccogliere}{22}{subsection.8.1}%

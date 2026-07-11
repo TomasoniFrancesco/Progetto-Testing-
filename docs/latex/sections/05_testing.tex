@@ -1,0 +1,133 @@
+\section{Testing Java}
+\label{sec:testing}
+
+\subsection{Struttura dei test}
+
+\begin{longtable}{@{}p{4.3cm}p{8.7cm}@{}}
+\toprule
+\textbf{Classe} & \textbf{Copre} \\
+\midrule
+\endhead
+\texttt{ParcheggioTest} & Costruttori, precondizioni violate, tutti i rami di \texttt{assegnaPosto}/\texttt{liberaPosto}, test parametrico CSV. \\
+\texttt{SmartParkingFSMTest} & Tutti gli 8 stati e le transizioni, fallback disabile, parcheggio pieno, self-loop NEG/INGR/TARIF. \\
+\texttt{McdcVerificaTest} & Copertura MC/DC delle due decisioni composte di \texttt{assegnaPosto} (Tabella~\ref{tab:mcdc1} e~\ref{tab:mcdc2}). \\
+\texttt{DisplayMockTest} & Notifiche a \texttt{Display} verificate con Mockito. \\
+\texttt{ScenarioAvallaTest} & Traduzione fedele di \texttt{test\_pieno.avalla} in JUnit (Model Based Testing). \\
+\texttt{CombinatorialTest} & Tabella pairwise a 6 righe (Tabella~\ref{tab:pairwise}). \\
+\texttt{UISeleniumTest} & Smoke test della UI (tag \texttt{ui}, escluso dalla build standard). \\
+\bottomrule
+\end{longtable}
+
+\subsection{MC/DC}
+
+\textbf{Decisione 1} (ramo STD/ABBONATO): $D_1 = (\text{utente}{=}\text{STD} \lor
+\text{utente}{=}\text{ABBONATO}) \land \text{postiStd}{>}0$.
+
+\begin{longtable}{@{}p{1cm}p{0.6cm}p{0.6cm}p{0.6cm}p{0.6cm}p{2.6cm}p{5.5cm}@{}}
+\toprule
+Caso & A & B & C & $D_1$ & Esito & Coppia indipendente \\
+\midrule
+\endhead
+TC1 & T & F & T & T & POSTO\_STD & base \\
+TC2 & T & F & F & F & NESSUNO & isola C (vs TC1) \\
+TC3 & F & F & T & F & POSTO\_DIS & isola A (vs TC1) \\
+TC4 & F & T & T & T & POSTO\_STD & isola B (vs TC3) \\
+\bottomrule
+\caption{MC/DC -- Decisione 1.}
+\label{tab:mcdc1}
+\end{longtable}
+
+\textbf{Decisione 2} (ramo DISABILE, fallback): $C_1{=}\text{postiDis}{>}0$,
+$C_2{=}\text{postiStd}{>}0$.
+
+\begin{longtable}{@{}p{1cm}p{1cm}p{1cm}p{2.6cm}p{6.5cm}@{}}
+\toprule
+Caso & $C_1$ & $C_2$ & Esito & Coppia indipendente \\
+\midrule
+\endhead
+TC5 & T & --- & POSTO\_DIS & base \\
+TC6 & F & T & POSTO\_STD & isola $C_1$ (vs TC5) \\
+TC7 & F & F & NESSUNO & isola $C_2$ (vs TC6) \\
+\bottomrule
+\caption{MC/DC -- Decisione 2.}
+\label{tab:mcdc2}
+\end{longtable}
+
+\subsection{Combinatorial testing (pairwise)}
+
+Parametri: \texttt{tipoUtente} $\in$ \{STD, DISABILE, ABBONATO\}, \texttt{postiStd}
+$\in \{0, 1\}$, \texttt{postiDis} $\in \{0, 1\}$.
+
+\begin{longtable}{@{}p{0.6cm}p{2cm}p{1.6cm}p{1.6cm}p{3.5cm}@{}}
+\toprule
+\# & tipoUtente & postiStd & postiDis & Esito atteso \\
+\midrule
+\endhead
+1 & STD      & 0 & 0 & NESSUNO \\
+2 & STD      & 1 & 1 & POSTO\_STD \\
+3 & DISABILE & 0 & 1 & POSTO\_DIS \\
+4 & DISABILE & 1 & 0 & POSTO\_STD (fallback) \\
+5 & ABBONATO & 0 & 1 & NESSUNO \\
+6 & ABBONATO & 1 & 0 & POSTO\_STD \\
+\bottomrule
+\caption{Tabella pairwise (copre tutte le coppie dei 3 parametri).}
+\label{tab:pairwise}
+\end{longtable}
+
+\subsection{Mockito}
+
+\begin{lstlisting}[language=Java, caption={Verifica delle notifiche con Mockito}]
+@Test
+void notificaAccessoNegatoQuandoParcheggioPieno() {
+    SmartParkingFSM fsm = new SmartParkingFSM(new Parcheggio(0, 0), display);
+    fsm.step(SensorInput.sensIn());
+    fsm.step(SensorInput.utente(TipoUtente.STD));
+    fsm.step(SensorInput.utente(TipoUtente.STD));
+    verify(display).mostra("Accesso negato");
+}
+\end{lstlisting}
+
+\subsection{Model Based Testing}
+
+Lo scenario \texttt{test\_pieno.avalla} è stato tradotto passo-passo in
+\texttt{ScenarioAvallaTest}, con ogni blocco \texttt{set}/\texttt{step}/\texttt{check}
+commentato con il riferimento alla riga originale.
+
+\subsection{Esecuzione e copertura}
+
+\screenshot{junit_run_all_green}{Esecuzione di tutta la suite JUnit}{%
+In Eclipse (o IntelliJ), tasto destro sulla cartella \texttt{src/test/java} $\to$
+\textbf{Run As $\to$ JUnit Test}, oppure da terminale \texttt{mvn test}. Screenshot
+della vista JUnit con tutti i test verdi e il conteggio totale (es. ``Runs: N/N,
+Errors: 0, Failures: 0'').}
+
+La copertura è stata misurata con JaCoCo (\texttt{mvn verify}, report in
+\texttt{target/site/jacoco/index.html}). Dal report sono esclusi la UI Vaadin
+(testata end-to-end con Selenium, non misurabile da JaCoCo) e la classe di avvio
+Spring Boot (3 righe di boilerplate); l'esclusione è dichiarata nel \texttt{pom.xml}.
+Alla prima misurazione il package \texttt{core} risultava al 98\% di instruction e
+95\% di branch coverage, con \texttt{Parcheggio} già al \textbf{100\%/100\%} —
+coerente con la verifica ESC dei contratti (\S\ref{sec:jml-ref}) — e 3 branch
+scoperti in \texttt{SmartParkingFSM}: il self-loop di \texttt{gestisciUsc}
+(\texttt{transito\_ok} falso in USC), il ramo \texttt{display == null} di
+\texttt{cambiaStato}, e il \texttt{default} dello switch di \texttt{step}. I primi
+due erano veri buchi di test e sono stati chiusi aggiungendo due test mirati
+(\texttt{uscRestaInUscFinoAlTransito}, \texttt{fsmFunzionaSenzaDisplay}). Il terzo è
+\emph{strutturalmente irraggiungibile}: lo switch gestisce tutti e 8 i valori
+dell'enum \texttt{StatoSistema}, quindi il \texttt{default} (difensivo, lancia
+\texttt{IllegalStateException}) non può essere eseguito — è l'analogo Java dei rami
+infattibili già osservati con AsmetaV sul modello (\S\ref{sec:asmetav-vc}). Dopo
+l'aggiunta dei due test, l'unico branch non coperto del package è proprio quel
+\texttt{default}.
+
+\screenshot{jacoco_coverage_report}{Report JaCoCo -- totale (solo package core)}{%
+Pagina principale del report: 98\% instruction / 95\% branch coverage.}
+
+\screenshot{jacoco_detail_parcheggio}{Report JaCoCo -- dettaglio per classe del package core}{%
+Vista del package \texttt{it.tvsw.smartparking.core}: \texttt{Parcheggio} 100\%/100\%,
+enum e \texttt{SensorInput} 100\%, \texttt{SmartParkingFSM} 96\%/96\%.}
+
+\screenshot{jacoco_detail_fsm}{Report JaCoCo -- dettaglio per metodo di SmartParkingFSM}{%
+Vista per metodo di \texttt{SmartParkingFSM}: tutti i metodi al 100\% tranne
+\texttt{step()}, il cui unico branch non coperto è il \texttt{default} difensivo
+dello switch, strutturalmente irraggiungibile (discusso nel testo).}

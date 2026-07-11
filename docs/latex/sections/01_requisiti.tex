@@ -1,0 +1,126 @@
+\section{Introduzione e requisiti}
+
+\subsection{Descrizione del sistema}
+
+SmartParking è un sistema di gestione automatizzata per un parcheggio dotato di due
+sbarre (ingresso e uscita), sensori di rilevamento veicolo e un totem per il
+riconoscimento del tipo di utente. Il parcheggio dispone di due categorie di posti:
+\textbf{standard} e riservati ai \textbf{disabili}, ciascuna con capacità massima
+(nel modello, per semplicità, entrambe pari a 1).
+
+Il sistema riconosce tre tipologie di utente: \textbf{STD} (utente occasionale, paga
+la sosta), \textbf{DISABILE} (permesso disabili, esente da pagamento, priorità sui
+posti riservati) e \textbf{ABBONATO} (abbonamento mensile, esente da pagamento).
+All'arrivo di un veicolo il sistema rileva la richiesta, identifica il tipo di utente
+e verifica la disponibilità di un posto adeguato prima di sollevare la sbarra. Se non
+c'è posto, l'accesso viene negato.
+
+Un utente DISABILE ha priorità sui posti riservati: se questi sono esauriti, il
+sistema applica un \emph{fallback} assegnandogli un posto standard, se disponibile.
+Se anche i posti standard sono esauriti, l'accesso è negato.
+
+In uscita, solo gli utenti STD transitano per una fase di pagamento; ABBONATI e
+DISABILI procedono direttamente all'uscita. Il comportamento è stato modellato
+formalmente in Abstract State Machine (ASM) tramite Asmeta, validato con scenari di
+simulazione (Avalla) e proprietà di model checking (CTL), e poi implementato in Java
+con contratti JML sul nucleo di dominio.
+
+\subsection{Requisiti funzionali}
+
+\begin{longtable}{@{}p{1.3cm}p{9.5cm}p{2cm}@{}}
+\toprule
+\textbf{ID} & \textbf{Descrizione} & \textbf{Priorità} \\
+\midrule
+\endhead
+RF1  & Rilevare l'arrivo di un veicolo in ingresso (\texttt{sens\_in}) e passare da IDLE a CHK\_IN. & Alta \\
+RF2  & Identificare il tipo di utente (STD, DISABILE, ABBONATO) e passare allo stato VER. & Alta \\
+RF3  & Per STD/ABBONATO, assegnare un posto standard se \texttt{posti\_std > 0} e aprire la sbarra (INGR). & Alta \\
+RF4  & Per DISABILE, assegnare in via prioritaria un posto disabile se \texttt{posti\_dis > 0}. & Alta \\
+RF5  & Se per un DISABILE i posti disabili sono esauriti, tentare il fallback su posto standard. & Alta \\
+RF6  & Se nessun posto è disponibile (inclusi i fallback), negare l'accesso (NEG). & Alta \\
+RF7  & Da NEG, tornare in IDLE solo dopo che il veicolo si è allontanato (\texttt{auto\_via}). & Media \\
+RF8  & Al transito in ingresso, decrementare il contatore del posto assegnato e tornare in IDLE. & Alta \\
+RF9  & Rilevare l'arrivo di un veicolo in uscita (\texttt{sens\_out}) e passare a CHK\_OUT. & Alta \\
+RF10 & In uscita, per STD richiedere il pagamento (TARIF) prima della sbarra. & Alta \\
+RF11 & In uscita, per DISABILE/ABBONATO saltare il pagamento e andare direttamente a USC. & Alta \\
+RF12 & Restare in TARIF finché il pagamento non è confermato. & Alta \\
+RF13 & Al transito in uscita, incrementare il contatore, azzerare la memoria del posto e tornare in IDLE. & Alta \\
+RF14 & Mantenere in memoria il tipo di posto occupato dall'ingresso fino all'uscita. & Media \\
+\bottomrule
+\end{longtable}
+
+\subsection{Requisiti non funzionali}
+
+\begin{longtable}{@{}p{1.3cm}p{10.2cm}@{}}
+\toprule
+\textbf{ID} & \textbf{Descrizione} \\
+\midrule
+\endhead
+RNF1 & \textbf{Sicurezza dei contatori}: \texttt{posti\_std} e \texttt{posti\_dis} non devono mai essere negativi né superare la capacità iniziale, in ogni stato raggiungibile (verificato via model checking). \\
+RNF2 & \textbf{Determinismo}: a parità di stato e input monitorati, il sistema produce sempre lo stesso stato successivo. \\
+RNF3 & \textbf{Assenza di stati bloccanti}: da ogni stato transitorio esiste sempre un cammino che riporta il sistema in IDLE. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Macchina a stati}
+
+La Figura~\ref{fig:fsm-diagram} mostra i pesi degli 8 stati operativi e le
+transizioni principali del modello ASM (\texttt{SmartParking.asm}).
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+    >=stealth, auto, scale=1.0, every node/.style={transform shape},
+    state/.style={rectangle, rounded corners, draw=black, thick, minimum width=2.1cm, minimum height=0.9cm, fill=blue!8, font=\small}
+]
+% --- Nodi su griglia esplicita (x,y) per evitare sovrapposizioni ---
+\node[state] (idle)    at (0,2)    {IDLE};
+\node[state] (neg)     at (4,4.3)  {NEG};
+\node[state] (chkin)   at (4,2)    {CHK\_IN};
+\node[state] (ver)     at (7.2,2)  {VER};
+\node[state] (ingr)    at (10.5,2) {INGR};
+\node[state] (chkout)  at (4,-0.3) {CHK\_OUT};
+\node[state] (tarif)   at (7.2,-0.3) {TARIF};
+\node[state] (usc)     at (10.5,-0.3) {USC};
+
+% --- Flusso di ingresso (riga superiore) ---
+\draw[->] (idle) -- node[above]{\scriptsize sens\_in} (chkin);
+\draw[->] (chkin) -- (ver);
+\draw[->] (ver) -- node[right]{\scriptsize no posto} (neg);
+\draw[->] (ver) -- node[above]{\scriptsize posto ok} (ingr);
+\draw[->] (neg) edge[loop above] node{\scriptsize auto\_via=false} (neg);
+\draw[->] (ingr) edge[loop above] node{\scriptsize transito\_ok=false} (ingr);
+
+% --- Flusso di uscita (riga inferiore) ---
+\draw[->] (idle) -- node[left]{\scriptsize sens\_out} (chkout);
+\draw[->] (chkout) -- node[above]{\scriptsize STD} (tarif);
+\draw[->] (chkout) to[bend right=15] node[below]{\scriptsize DIS/ABB} (usc);
+\draw[->] (tarif) edge[loop below] node{\scriptsize pagamento\_ok=false} (tarif);
+\draw[->] (tarif) -- node[above]{\scriptsize pagamento\_ok} (usc);
+\draw[->] (usc) edge[loop below] node{\scriptsize transito\_ok=false} (usc);
+
+% --- Ritorni verso IDLE (curve ampie per non incrociare i nodi) ---
+\draw[->] (neg) to[bend left=35] node[above, sloped]{\scriptsize auto\_via} (idle);
+\draw[->] (ingr) to[bend left=55] node[above, sloped]{\scriptsize transito\_ok} (idle);
+\draw[->] (usc) to[bend right=55] node[below, sloped]{\scriptsize transito\_ok} (idle);
+\end{tikzpicture}
+\caption{Diagramma della macchina a stati SmartParking (8 stati).}
+\label{fig:fsm-diagram}
+\end{figure}
+
+\subsection{Glossario}
+
+\begin{longtable}{@{}p{4cm}p{7.5cm}@{}}
+\toprule
+\textbf{Termine} & \textbf{Significato} \\
+\midrule
+\endhead
+Sensore di ingresso/uscita & Rileva la presenza di un veicolo davanti a una sbarra. \\
+Sbarra & Barriera fisica aperta solo in INGR/USC quando \texttt{transito\_ok=true}. \\
+Transito & Il veicolo è passato fisicamente sotto la sbarra aperta. \\
+Tipo utente & Categoria del veicolo: STD, DISABILE o ABBONATO. \\
+Posto standard / disabile & Le due categorie di posto auto. \\
+Fallback & Politica per cui un DISABILE senza posti riservati riceve un posto standard. \\
+Tariffa (TARIF) & Fase di pagamento, obbligatoria solo per STD in uscita. \\
+\bottomrule
+\end{longtable}

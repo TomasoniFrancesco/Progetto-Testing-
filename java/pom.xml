@@ -20,6 +20,9 @@
     <description>Progetto individuale TVSW - SmartParking (ASM + JML + Java + Vaadin)</description>
 
     <properties>
+        <!-- Filtri di default per surefire (sovrascrivibili da riga di comando) -->
+        <test.groups></test.groups>
+        <test.excludedGroups>ui</test.excludedGroups>
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -90,15 +93,27 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <excludedGroups>ui</excludedGroups>
+                    <!-- Di default i test taggati "ui" (Selenium) sono esclusi:
+                         richiedono l'app avviata e Chrome. Per eseguirli:
+                         mvn test -Dtest.groups=ui -Dtest.excludedGroups= -->
+                    <groups>${test.groups}</groups>
+                    <excludedGroups>${test.excludedGroups}</excludedGroups>
                 </configuration>
             </plugin>
 
-            <!-- JaCoCo: report di copertura statement/branch -->
+            <!-- JaCoCo: report di copertura statement/branch.
+                 Esclusi dal report: la UI Vaadin (testata end-to-end con Selenium,
+                 non misurabile da JaCoCo) e la classe di avvio Spring Boot. -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>it/tvsw/smartparking/ui/**</exclude>
+                        <exclude>it/tvsw/smartparking/Application*</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>

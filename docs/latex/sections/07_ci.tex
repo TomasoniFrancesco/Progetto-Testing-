@@ -1,0 +1,39 @@
+\section{Continuous Integration}
+
+Il workflow \texttt{.github/workflows/ci.yml} esegue la build Maven completa
+(escludendo i test taggati \texttt{ui}) ad ogni push/PR e carica il report JaCoCo
+come artifact:
+
+\begin{lstlisting}[language=bash, caption={.github/workflows/ci.yml (estratto)}]
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: mvn -B -f java/pom.xml verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: java/target/site/jacoco/
+\end{lstlisting}
+
+\screenshot{ci_success}{Esecuzione CI riuscita}{%
+Dopo aver creato il repository GitHub e fatto il primo push, andare sulla tab
+\textbf{Actions} del repository. Screenshot di un run completato con successo
+(spunta verde), con tutti gli step espansi visibili (checkout, setup JDK, build+test).}
+
+\screenshot{ci_failure}{Esecuzione CI fallita (dimostrazione)}{%
+Per dimostrare che la CI intercetta davvero le regressioni: modificare
+temporaneamente un metodo del core (es. far restituire sempre \texttt{TipoPosto.NESSUNO}
+da \texttt{assegnaPosto}), fare commit/push su un branch di prova, e catturare lo
+screenshot del run \textbf{fallito} in rosso con il log dei test JUnit falliti
+espanso. Poi ripristinare il codice corretto con un nuovo commit e, se vuoi, uno
+screenshot finale che torna verde.}
