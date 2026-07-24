@@ -1,25 +1,27 @@
 \section{Conclusioni}
 
-Il progetto copre le quattro sezioni richieste: requisiti, modello Asmeta (con
-scenari corretti/nuovi e model checking), contratti JML sul nucleo di dominio, e
-implementazione Java con test (JUnit, MC/DC, Mockito, Model Based Testing,
-combinatorial testing), UI Vaadin, CI e analisi statica.
+Tirando le somme, il progetto tocca tutte e quattro le parti richieste: i requisiti, il
+modello Asmeta (con gli scenari, sia quelli corretti che quelli nuovi, e il model
+checking), i contratti JML sul nucleo del dominio e l'implementazione Java con i vari
+test (JUnit, MC/DC, Mockito, model based testing e combinatorial testing), la UI Vaadin,
+la CI e l'analisi statica.
 
-\subsection{Checklist finale delle evidenze da raccogliere}
+\subsection{Riepilogo delle evidenze}
 
 \begin{itemize}
     \item Simulatore e animatore Asmeta (Sezione~2)
-    \item AsmetaV -- copertura (Sezione~2)
-    \item AsmetaSMV -- 10 CTLSPEC (Sezione~2)
+    \item AsmetaV -- copertura degli scenari Avalla (Sezione~2)
+    \item AsmetaSMV -- 8 CTLSPEC verificate e 2 volutamente false con controesempio (Sezione~2)
     \item Model Advisor e ATGT, opzionali (Sezione~2)
-    \item OpenJML ESC (Sezione~3)
-    \item UI Vaadin in esecuzione (Sezione~4)
-    \item JUnit + JaCoCo + PIT (Sezione~5)
-    \item SpotBugs (Sezione~6)
-    \item GitHub Actions, successo e fallimento dimostrativo (Sezione~7)
+    \item OpenJML ESC sui contratti del nucleo (Sezione~3)
+    \item UI Vaadin in esecuzione e test Selenium (Sezione~4)
+    \item JUnit (59 test del package \texttt{core}, tutti verdi, + 1 test Selenium UI escluso dalla build standard) e copertura JaCoCo (Sezione~5)
+    \item Analisi statica e ispezione critica con LLM (Sezione~6)
+    \item GitHub Actions: build e test automatici ad ogni push (Sezione~7)
 \end{itemize}
 
-Una volta raccolti tutti gli screenshot elencati nelle rispettive sezioni (basta
-salvarli in \texttt{docs/latex/images/} con il nome esatto indicato in ogni
-didascalia) e ricompilare con \texttt{pdflatex main.tex} (due volte), il documento
-sarà completo e pronto per la discussione orale.
+Quello che mi piace di questo percorso è che si tiene tutto insieme: si parte dal
+modello astratto, lo si valida e lo si verifica, poi si passa ai contratti JML dimostrati
+staticamente e si finisce con i test sul codice e la CI. Alla fine si vede come le
+tecniche viste a lezione, ognuna con il suo scopo, entrino a far parte di un unico
+processo di sviluppo in cui a ogni livello si controlla qualcosa.

@@ -2,7 +2,7 @@
 
 Documento unico (in stile "relazione", come l'esempio del collega) che copre tutte
 le sezioni del progetto: requisiti, Asmeta, JML/OpenJML, Java/UI, testing
-(JUnit/JaCoCo/PIT/MCDC/combinatorial), analisi statica, CI.
+(JUnit/JaCoCo/MCDC/combinatorial), analisi statica, CI.
 
 ## Come compilare
 

@@ -3,27 +3,46 @@ asm SmartParking
 import StandardLibrary.asm
 
 signature:
-	// --- DOMINI ---
+	//  DOMINI 
 	enum domain StatoSistema = {IDLE | CHK_IN | VER | NEG | INGR | CHK_OUT | TARIF | USC}
 	enum domain TipoUtente = {STD | DISABILE | ABBONATO}
 	enum domain TipoPosto = {POSTO_STD | POSTO_DIS | NESSUNO}
 
-	// --- FUNZIONI MONITORATE  ---
-	dynamic monitored sens_in: Boolean
-	dynamic monitored sens_out: Boolean
-	dynamic monitored transito_ok: Boolean
-	dynamic monitored auto_via: Boolean
-	dynamic monitored utente_rilevato: TipoUtente
-	dynamic monitored pagamento_ok: Boolean
+	//  FUNZIONI MONITORATE  
+	monitored sens_in: Boolean
+	monitored sens_out: Boolean
+	monitored transito_ok: Boolean
+	monitored auto_via: Boolean
+	monitored utente_rilevato: TipoUtente
+	monitored pagamento_ok: Boolean
 
-	// --- FUNZIONI CONTROLLATE (La memoria del sistema) ---
-	dynamic controlled stato: StatoSistema
-	dynamic controlled posti_std: Integer
-	dynamic controlled posti_dis: Integer
-	dynamic controlled posto_assegnato: TipoPosto // Memoria di quale posto è stato effettivamente preso
+	//  FUNZIONI CONTROLLATE (La memoria del sistema) 
+	controlled stato: StatoSistema
+ 	controlled posti_std: Integer
+	controlled posti_dis: Integer
+	controlled posto_assegnato: TipoPosto // Memoria di quale posto è stato effettivamente preso
+
+	//  FUNZIONI DERIVATE (calcolate, non memorizzate)
+	// n-aria (binaria): dice se all'utente $u puo' essere assegnato il posto $p
+	derived assegnabile: Prod(TipoUtente, TipoPosto) -> Boolean
+	// vero quando NESSUN tipo di utente puo' piu' entrare (parcheggio saturo)
+	derived parcheggioPieno: Boolean
 
 definitions:
-	// --- REGOLE DI TRANSIZIONE (Gli step della Macchina a Stati) ---
+	//  DEFINIZIONE FUNZIONI DERIVATE 
+	// POSTO_STD: assegnabile a chiunque se ci sono posti standard liberi.
+	// POSTO_DIS: riservato ai DISABILI, se ci sono posti disabili liberi.
+	function assegnabile($u in TipoUtente, $p in TipoPosto) =
+		($p = POSTO_STD and posti_std > 0) or
+		($p = POSTO_DIS and $u = DISABILE and posti_dis > 0)
+
+	// parcheggioPieno: vero se, per OGNI tipo di utente, non e' assegnabile
+	// ne' un posto standard ne' uno disabile. Usa il quantificatore forall.
+	function parcheggioPieno =
+		(forall $u in TipoUtente with
+			(not assegnabile($u, POSTO_STD) and not assegnabile($u, POSTO_DIS)))
+
+	//  REGOLE DI TRANSIZIONE (Gli step della Macchina a Stati) 
 	
 	rule r_gestione_IDLE =
 		if sens_in = true then
@@ -39,25 +58,17 @@ definitions:
 		stato := VER
 
 	rule r_gestione_VER =
-		// --- LA LOGICA COMPLESSA DEI POSTI ---
-		if utente_rilevato = STD or utente_rilevato = ABBONATO then
-			if posti_std > 0 then
-				par
-					stato := INGR
-					posto_assegnato := POSTO_STD
-				endpar
-			else
-				stato := NEG
-			endif
-		else 
-			// È un DISABILE: controlla prima i posti disabili, poi gli standard
-			if posti_dis > 0 then
+		//  LA LOGICA DEI POSTI, tramite la derivata n-aria "assegnabile" 
+		// Priorita': prima POSTO_DIS (solo per DISABILE), poi POSTO_STD (fallback
+		// del disabile e caso normale STD/ABBONATO), altrimenti NEG.
+		let ($u = utente_rilevato) in
+			if assegnabile($u, POSTO_DIS) then
 				par
 					stato := INGR
 					posto_assegnato := POSTO_DIS
 				endpar
 			else
-				if posti_std > 0 then
+				if assegnabile($u, POSTO_STD) then
 					par
 						stato := INGR
 						posto_assegnato := POSTO_STD
@@ -66,7 +77,7 @@ definitions:
 					stato := NEG
 				endif
 			endif
-		endif
+		endlet
 
 	rule r_gestione_NEG =
 		if auto_via = true then
@@ -117,7 +128,7 @@ definitions:
 			endpar
 		endif
 
-	// --- MAIN RULE ---
+	//  MAIN RULE 
 	main rule r_Main =
 		par
 			if stato = IDLE then r_gestione_IDLE[] endif
@@ -130,11 +141,11 @@ definitions:
 			if stato = USC then r_gestione_USC[] endif
 		endpar
 
-	// --- STATO INIZIALE ---
+	//  STATO INIZIALE 
 	default init s0:
 		function stato = IDLE
 		// Partiamo con un parcheggio piccolo per non far esplodere il Model Checker dopo
-		function posti_std = 1 
+		function posti_std = 1
 		function posti_dis = 1
 		function posto_assegnato = NESSUNO
 		

@@ -2,16 +2,17 @@
 
 \subsection{Il modello (\texttt{asmeta/src/SmartParking.asm})}
 
-Il modello definisce tre domini enumerativi (\texttt{StatoSistema}, \texttt{TipoUtente},
-\texttt{TipoPosto}), sei funzioni monitorate (\texttt{sens\_in}, \texttt{sens\_out},
-\texttt{transito\_ok}, \texttt{auto\_via}, \texttt{utente\_rilevato},
+Nel modello ho definito tre domini enumerativi (\texttt{StatoSistema},
+\texttt{TipoUtente}, \texttt{TipoPosto}), sei funzioni monitorate (\texttt{sens\_in},
+\texttt{sens\_out}, \texttt{transito\_ok}, \texttt{auto\_via}, \texttt{utente\_rilevato},
 \texttt{pagamento\_ok}) e quattro funzioni controllate (\texttt{stato},
-\texttt{posti\_std}, \texttt{posti\_dis}, \texttt{posto\_assegnato}) e una funzione
-\textbf{derivata n-aria (binaria)} \texttt{assegnabile: Prod(TipoUtente, TipoPosto)
-$\to$ Boolean}, che centralizza la politica di assegnazione dei posti: \texttt{POSTO\_STD}
-è assegnabile a chiunque se \texttt{posti\_std > 0}, mentre \texttt{POSTO\_DIS} è
-riservato ai DISABILI se \texttt{posti\_dis > 0}. Essendo derivata, è ricalcolata a ogni
-stato a partire dalle funzioni controllate, senza occupare memoria di stato.
+\texttt{posti\_std}, \texttt{posti\_dis}, \texttt{posto\_assegnato}). A queste ho
+aggiunto una funzione derivata n-aria (binaria), \texttt{assegnabile: Prod(TipoUtente,
+TipoPosto) $\to$ Boolean}, che raccoglie in un punto solo tutta la politica di
+assegnazione: un \texttt{POSTO\_STD} si può dare a chiunque se \texttt{posti\_std > 0},
+mentre un \texttt{POSTO\_DIS} è riservato ai disabili e solo se \texttt{posti\_dis > 0}.
+Trattandosi di una funzione derivata, viene ricalcolata a ogni stato a partire dalle
+funzioni controllate, quindi non occupa memoria.
 
 \begin{lstlisting}[language=Pascal, caption={Funzione derivata assegnabile}]
 derived assegnabile: Prod(TipoUtente, TipoPosto) -> Boolean
@@ -21,11 +22,25 @@ function assegnabile($u in TipoUtente, $p in TipoPosto) =
     ($p = POSTO_DIS and $u = DISABILE and posti_dis > 0)
 \end{lstlisting}
 
-La regola più importante è \texttt{r\_gestione\_VER}, che decide l'assegnazione del
-posto usando una regola \textbf{\texttt{let}} e la derivata \texttt{assegnabile}:
-prova prima \texttt{POSTO\_DIS} (vero solo per un DISABILE con posti disabili liberi),
-poi \texttt{POSTO\_STD} (caso STD/ABBONATO e fallback del disabile a posti disabili
-esauriti), altrimenti nega l'accesso (NEG):
+Sempre tra le derivate ho aggiunto \texttt{parcheggioPieno}, che uso per far vedere il
+costrutto \texttt{forall}: è vera quando, per \emph{ogni} tipo di utente, non è
+assegnabile né un posto standard né uno disabile, cioè quando davvero non può più entrare
+nessuno. La controllo nello scenario di saturazione \texttt{test\_pieno\_totale.avalla},
+dove all'inizio è falsa (c'è ancora posto) e a parcheggio pieno diventa vera.
+
+\begin{lstlisting}[language=Pascal, caption={Funzione derivata parcheggioPieno (uso di forall)}]
+function parcheggioPieno =
+    (forall $u in TipoUtente with
+        (not assegnabile($u, POSTO_STD) and not assegnabile($u, POSTO_DIS)))
+\end{lstlisting}
+
+La regola più importante è \texttt{r\_gestione\_VER}, quella che decide a chi assegnare
+il posto. Qui ho usato una regola \texttt{let} insieme alla derivata
+\texttt{assegnabile}: la regola prova prima con \texttt{POSTO\_DIS} (che è vero solo per
+un disabile quando ci sono ancora posti disabili liberi), poi con \texttt{POSTO\_STD}
+(il caso di STD e abbonati, ma anche il fallback del disabile quando i posti riservati
+sono finiti) e, se non va a buon fine nessuno dei due, nega l'accesso mandando il
+sistema in NEG:
 
 \begin{lstlisting}[language=Pascal, caption={Regola r\_gestione\_VER (assegnazione posto, con let e derivata)}]
 rule r_gestione_VER =
@@ -48,19 +63,19 @@ rule r_gestione_VER =
     endlet
 \end{lstlisting}
 
-Il modello semplificato per il model checking (\texttt{SmartParking\_MC.asm})
-mantiene invece la versione ``appiattita'' a if annidati, comportamentalmente
-identica, per massimizzare la compatibilità della traduzione AsmetaSMV $\to$ NuSMV.
-Sempre per esigenze di traduzione, nel modello MC i contatori sono dichiarati su un
-dominio concreto finito \texttt{Posti = \{0..2\}} anziché su \texttt{Integer}
-(AsmetaSMV rifiuta i domini infiniti); la scelta di \texttt{\{0..2\}} rende le
-proprietà \texttt{ag(posti\_std <= 1)} e \texttt{ag(posti\_dis <= 1)} verifiche
-autentiche e non tautologie di tipo.
+Per il model checking ho poi usato una versione semplificata del modello
+(\texttt{SmartParking\_MC.asm}). Qui ho lasciato gli if annidati "appiattiti", che si
+comportano esattamente allo stesso modo ma rendono più facile la traduzione verso
+NuSMV. Sempre per lo stesso motivo, in questo modello i contatori non sono più
+\texttt{Integer} ma stanno su un dominio finito \texttt{Posti = \{0..2\}}, dato che
+AsmetaSMV non accetta domini infiniti. Ho scelto \texttt{\{0..2\}} e non \texttt{\{0,1\}}
+apposta: così le proprietà \texttt{ag(posti\_std <= 1)} e \texttt{ag(posti\_dis <= 1)}
+sono verifiche vere e proprie, e non diventano ovvie solo per come è fatto il tipo.
 
 \subsubsection{Simulazione manuale}
 
-Per prendere confidenza col modello, prima di lanciare gli scenari automatici è utile
-simulare a mano un paio di step con il simulatore Asmeta.
+Prima di lanciare gli scenari automatici, per prendere un po' di confidenza con il
+modello, conviene simulare a mano qualche step con il simulatore di Asmeta.
 
 \screenshot{asmeta_simulator_ingresso_std}{Simulatore -- ingresso STD completo}{%
 Aprire \texttt{asmeta/src/SmartParking.asm} in Eclipse e lanciare il simulatore
@@ -111,23 +126,23 @@ terzo utente e tutti i check verdi.}
 
 \subsection{AsmetaV -- validazione con copertura (Vc)}\label{sec:asmetav-vc}
 
-Gli scenari sono stati validati con \textbf{AsmetaV} in modalità \emph{validazione con
-calcolo della copertura} (l'opzione ``Vc'' richiesta dalla consegna): per ogni scenario
-il validatore, oltre a verificare i \texttt{check}, riporta in console l'insieme delle
-regole del modello esercitate (\emph{rule coverage}). L'unione delle regole coperte dai
-sei scenari manuali copre tutte le 8 regole di transizione, la main rule e tutti i rami
-di \texttt{r\_gestione\_VER}.
+Gli scenari li ho validati con AsmetaV usando la modalità che calcola anche la
+copertura, cioè l'opzione ``Vc'' richiesta dalla consegna. In pratica, per ogni scenario
+il validatore non si limita a controllare i \texttt{check}, ma stampa in console anche
+quali regole del modello sono state usate (la \emph{rule coverage}). Mettendo insieme i
+sei scenari scritti a mano si arriva a coprire tutte le 8 regole di transizione, la main
+rule e tutti i rami di \texttt{r\_gestione\_VER}.
 
-Il confronto con gli scenari generati casualmente è istruttivo. Un primo export di
-15 step random copriva solo 6 regole su 9 (scoperte: \texttt{r\_gestione\_NEG},
-\texttt{r\_gestione\_TARIF}, \texttt{r\_gestione\_USC}); raddoppiando a 30 step
-(\texttt{test\_random\_30steps.avalla}) la \emph{rule coverage} raggiunge il 100\%,
-ma la \emph{branch coverage} resta incompleta (\texttt{r\_gestione\_USC} 33\%,
-\texttt{r\_gestione\_TARIF} 50\%, \texttt{r\_gestione\_IDLE} 75\%): ad esempio il
-ramo ``pagamento fallito'' di TARIF non viene mai esercitato per caso, ed è coperto
-solo dallo scenario mirato \texttt{test\_pagamento\_std}. La generazione random è
-quindi utile come complemento, ma non sostituisce gli scenari scritti a mano sui
-casi limite.
+A questo punto è interessante confrontare questi scenari con quelli generati a caso. Un
+primo export di 15 step random copriva solo 6 regole su 9 (restavano fuori
+\texttt{r\_gestione\_NEG}, \texttt{r\_gestione\_TARIF} e \texttt{r\_gestione\_USC});
+raddoppiando a 30 step (\texttt{test\_random\_30steps.avalla}) la rule coverage arriva
+al 100\%, ma la branch coverage resta comunque incompleta
+(\texttt{r\_gestione\_USC} 33\%, \texttt{r\_gestione\_TARIF} 50\%,
+\texttt{r\_gestione\_IDLE} 75\%). Il ramo ``pagamento fallito'' di TARIF, per esempio,
+non capita quasi mai per caso, e infatti viene coperto solo dallo scenario mirato
+\texttt{test\_pagamento\_std}. Insomma, la generazione random è utile come aggiunta, ma
+non sostituisce gli scenari scritti a mano sui casi limite.
 
 \screenshot{asmetav_coverage_report}{Report di copertura AsmetaV (Vc)}{%
 Tasto destro su ciascun file \texttt{.avalla} $\to$ \textbf{ASMETA $\to$ Validate
@@ -138,8 +153,10 @@ coperte.}
 
 \subsection{Model checking (\texttt{asmeta/src/SmartParking\_MC.asm})}
 
-Sono state definite 10 CTLSPEC (Tabella~\ref{tab:ctlspec}), suddivise in proprietà di
-sicurezza (safety), raggiungibilità e liveness.
+Per il model checking ho scritto 10 CTLSPEC (Tabella~\ref{tab:ctlspec}). Otto me le
+aspetto vere e le ho divise in proprietà di sicurezza (safety), di raggiungibilità e di
+liveness; le altre due invece le ho messe apposta false, giusto per far vedere che il
+model checker, quando una proprietà non regge, tira fuori un controesempio.
 
 \begin{longtable}{@{}p{0.6cm}p{7.3cm}p{2.2cm}p{1.3cm}@{}}
 \toprule
@@ -148,24 +165,42 @@ sicurezza (safety), raggiungibilità e liveness.
 \endhead
 1  & \texttt{ag(posti\_std >= 0)} & Safety & TRUE \\
 2  & \texttt{ag(posti\_dis >= 0)} & Safety & TRUE \\
-3  & \texttt{ef(stato = NEG)} & Raggiungibilità & TRUE \\
-4  & \texttt{ag((stato=INGR and posto\_assegnato=POSTO\_STD) implies posti\_std>0)} & Safety & TRUE \\
-5  & \texttt{ag(posti\_std <= 1)} & Safety & TRUE \\
-6  & \texttt{ag(posti\_dis <= 1)} & Safety & TRUE \\
-7  & \texttt{ag((stato=INGR and posto\_assegnato=POSTO\_DIS) implies posti\_dis>0)} & Safety & TRUE \\
-8  & \texttt{ef(stato = TARIF)} & Raggiungibilità & TRUE \\
-9  & \texttt{ef(stato = USC)} & Raggiungibilità & TRUE \\
-10 & \texttt{ag(stato=TARIF implies ef(stato=IDLE))} & Liveness & TRUE \\
+3  & \texttt{ag((stato=INGR and posto\_assegnato=POSTO\_STD) implies posti\_std>0)} & Safety & TRUE \\
+4  & \texttt{ag(posti\_std <= 1)} & Safety & TRUE \\
+5  & \texttt{ag(posti\_dis <= 1)} & Safety & TRUE \\
+6  & \texttt{ag((stato=INGR and posto\_assegnato=POSTO\_DIS) implies posti\_dis>0)} & Safety & TRUE \\
+7  & \texttt{ef(stato = TARIF)} & Raggiungibilità & TRUE \\
+8  & \texttt{ag(stato=TARIF implies ef(stato=IDLE))} & Liveness & TRUE \\
+9  & \texttt{ag(stato != NEG)} & Falsa (voluta) & FALSE \\
+10 & \texttt{ag(stato=TARIF implies af(stato=IDLE))} & Falsa (voluta) & FALSE \\
 \bottomrule
-\caption{Le 10 CTLSPEC verificate con AsmetaSMV.}
+\caption{Le 10 CTLSPEC sottoposte ad AsmetaSMV: 8 verificate, 2 volutamente false.}
 \label{tab:ctlspec}
 \end{longtable}
 
+Le due specifiche false sono interessanti, ognuna a modo suo:
+
+\begin{itemize}
+    \item la \#9 dice che ``l'accesso non viene mai negato''. Il controesempio che
+    genera NuSMV (9 stati) fa entrare un abbonato che occupa l'unico posto standard;
+    poi arriva un secondo veicolo, la verifica non trova posto e il sistema va in NEG,
+    e lo fa con il posto disabili ancora libero (\texttt{posti\_dis = 1}). Questa
+    traccia dimostra due cose in una volta: che lo stato di rifiuto si può davvero
+    raggiungere, e che la riserva funziona, perché il posto disabili non viene dato a
+    chi non ne ha diritto;
+    \item la \#10 è la versione con \texttt{af} della liveness \#8: chiede che da TARIF
+    il sistema torni in IDLE su \emph{ogni} cammino, non solo che esista un cammino che
+    ci riporta. È falsa perché nulla vieta all'ambiente di tenere
+    \texttt{pagamento\_ok = false} per sempre, cioè un utente che non paga mai, e infatti
+    il controesempio è proprio il loop infinito in TARIF. Mettere a confronto la \#8 e la
+    \#10 fa vedere bene la differenza tra \texttt{ef} e \texttt{af} in CTL.
+\end{itemize}
+
 \screenshot{asmetasmv_ctlspec_results}{Esito delle 10 CTLSPEC in AsmetaSMV}{%
 Tasto destro su \texttt{SmartParking\_MC.asm} $\to$ \textbf{Run As $\to$ AsmetaSMV}.
-Lo screenshot deve mostrare l'elenco delle 10 specifiche con esito \texttt{is true}
-per ciascuna (nessun controesempio). Se qualcuna risultasse \texttt{false}, allegare
-anche il controesempio generato e commentarlo.}
+Lo screenshot deve mostrare le 8 specifiche con esito \texttt{is true} e le 2
+specifiche volutamente false con esito \texttt{is false}, ciascuna con il proprio
+controesempio generato.}
 
 \screenshot{asmetasmv_random_trace}{Esecuzione random-step di verifica manuale}{%
 Nella stessa vista AsmetaSMV, usare la funzione di simulazione random (random step)
@@ -174,27 +209,27 @@ modello si comporta coerentemente (nessuna transizione viola le regole).}
 
 \subsubsection{Model Advisor (opzionale)}
 
-Il Model Advisor (AsmetaMA) opera tramite la traduzione in NuSMV, quindi è stato
-eseguito su \texttt{SmartParking\_MC.asm} (il modello principale, con \texttt{Integer}
-e funzioni derivate, non è traducibile: ``Error Domain Integer not supported'').
-L'analisi delle meta-proprietà ha dato i seguenti esiti:
+Il Model Advisor (AsmetaMA) lavora passando per la traduzione in NuSMV, quindi l'ho
+lanciato sul modello semplificato \texttt{SmartParking\_MC.asm}: quello principale, con
+\texttt{Integer} e funzioni derivate, non è traducibile e dà ``Error Domain Integer not
+supported''. L'analisi delle meta-proprietà ha dato questi esiti:
 
 \begin{itemize}
-\item \textbf{MP1, MP3, MP4, MP7 -- nessuna segnalazione}: nessun aggiornamento
+\item \textbf{MP1, MP3, MP4, MP7} non hanno prodotto segnalazioni: nessun aggiornamento
 inconsistente, nessuna assegnazione banale, nessuna locazione rimuovibile o mai
 aggiornata.
-\item \textbf{MP2 -- ``conditional rule not complete''} su tutte le regole di
-transizione: sono \emph{falsi positivi consapevoli}. L'advisor segnala ogni
-\texttt{if} privo di \texttt{else}, ma in ASM l'assenza dell'else è idiomatica e
-significa ``nessun aggiornamento'': è esattamente il comportamento voluto per i
-self-loop della FSM (es.\ \texttt{r\_gestione\_NEG} resta in NEG finché
-\texttt{auto\_via} non diventa vero, \texttt{r\_gestione\_TARIF} resta in TARIF
+\item \textbf{MP2} (``conditional rule not complete'') scatta su tutte le regole di
+transizione, ma si tratta di falsi positivi noti. L'advisor segnala ogni
+\texttt{if} privo di \texttt{else}, mentre in ASM l'assenza dell'else è idiomatica e
+significa ``nessun aggiornamento'': è proprio il comportamento che serve per i
+self-loop della FSM (per esempio \texttt{r\_gestione\_NEG} resta in NEG finché
+\texttt{auto\_via} non diventa vero, e \texttt{r\_gestione\_TARIF} resta in TARIF
 a pagamento fallito).
-\item \textbf{MP5/MP6 -- ``Domain Posti could be reduced: element \{2\} could be
-removed''}: non è un difetto ma una \emph{conferma}. Il dominio \texttt{Posti =
-\{0..2\}} è stato scelto deliberatamente più ampio del necessario: l'advisor
+\item \textbf{MP5/MP6} (``Domain Posti could be reduced: element \{2\} could be
+removed'') non segnala un difetto ma conferma una scelta. Il dominio \texttt{Posti =
+\{0..2\}} è stato preso apposta più ampio del necessario, e l'advisor
 dimostra che il valore 2 non è mai raggiunto da \texttt{posti\_std}/\texttt{posti\_dis},
-ovvero la proprietà di capacità \texttt{ag(posti <= 1)} verificata anche dalle
+cioè la proprietà di capacità \texttt{ag(posti <= 1)} verificata anche dalle
 CTLSPEC.
 \end{itemize}
 
@@ -211,7 +246,7 @@ Tasto destro su \texttt{SmartParking.asm} $\to$ \textbf{Run As $\to$ ATGT}. Most
 la lista dei file \texttt{.avalla} generati automaticamente nella cartella di output
 (uno screenshot dell'Explorer/Package Explorer di Eclipse con la cartella espansa).}
 
-Gli scenari generati (\texttt{asmeta/src/abstractests/testtest*.avalla}) sono
-consultabili direttamente nel repository; il loro ruolo, insieme allo scenario
-random da 30 step, è discusso nel confronto con gli scenari manuali in
-\S\ref{sec:asmetav-vc}.
+Gli scenari che ATGT genera (\texttt{asmeta/src/abstractests/testtest*.avalla}) si
+possono guardare direttamente nel repository. Il loro ruolo, insieme a quello dello
+scenario random da 30 step, l'ho già discusso nel confronto con gli scenari scritti a
+mano in \S\ref{sec:asmetav-vc}.

@@ -1,14 +1,16 @@
 \section{Analisi statica e ispezione del codice con LLM}
 \label{sec:analisi-statica}
 
-Come indicato dalla consegna (``con chatgpt o LLM in generale''), l'ispezione del
-codice è stata condotta come \textbf{code review critica eseguita da un LLM}
-(Claude), a cui è stato fornito l'intero sorgente del progetto (package
-\texttt{core} e \texttt{ui}) con la richiesta di individuare, riga per riga: naming
-poco chiaro, casi limite non gestiti, possibili \texttt{NullPointerException},
-incoerenze rispetto al modello ASM e debolezze di design. Ogni osservazione emersa
-è stata poi \emph{valutata criticamente} — non applicata alla cieca — decidendo se
-correggerla, mitigarla o accettarla documentandola, come in una vera code review.
+Visto che la consegna chiedeva di fare l'ispezione ``con chatgpt o LLM in generale'',
+ho deciso di usare ChatGPT come se fosse un collega a cui far dare una seconda occhiata
+al codice. Gli ho passato tutto il sorgente del progetto (i package \texttt{core} e
+\texttt{ui}) e gli ho chiesto di leggerlo riga per riga cercando nomi poco chiari, casi
+limite non gestiti, possibili \texttt{NullPointerException}, punti in cui il codice si
+allontana dal modello ASM e in generale debolezze di design. Le cose che sono uscite
+però non le ho prese per buone così com'erano: le ho valutate una per una io, decidendo
+di volta in volta se correggerle, mitigarle o lasciarle come stavano spiegando il
+perché. In pratica ho usato l'LLM per farmi notare i punti su cui ragionare, ma le
+decisioni le ho prese io, come in una code review vera.
 
 \subsection{Checklist preliminare}
 
@@ -32,53 +34,55 @@ correggerla, mitigarla o accettarla documentandola, come in una vera code review
 
     \item \textbf{\texttt{TipoPosto.NESSUNO} con doppio significato} (``nessun posto
     disponibile'' in \texttt{assegnaPosto} / ``no-op'' in \texttt{liberaPosto}).
-    \emph{Gestione}: chiarita via Javadoc invece di introdurre un tipo separato che
-    avrebbe appesantito una classe volutamente semplice.
+    \emph{Gestione}: chiarita via Javadoc, invece di introdurre un tipo separato che
+    avrebbe appesantito una classe pensata per restare semplice.
 
     \item \textbf{\texttt{liberaPosto} lancia eccezione se il contatore è già al
-    massimo}. \emph{Gestione}: mantenuta come scelta ``fail fast'': meglio un crash
-    diagnosticabile che un contatore silenziosamente oltre la capacità (violazione
-    dell'invariante di safety); comportamento coperto da test dedicato.
+    massimo}. \emph{Gestione}: l'ho tenuta apposta, come scelta ``fail fast'': meglio un
+    crash che si vede subito che un contatore che va silenziosamente oltre la capacità
+    (violando l'invariante di safety). Ho comunque coperto questo caso con un test
+    dedicato.
 
     \item \textbf{Scostamento temporale nel decremento dei contatori rispetto
-    all'ASM}: \texttt{assegnaPosto} decide e decrementa nello stesso passo, l'ASM
-    decrementa al transito (INGR). \emph{Gestione}: differenza non osservabile in
-    alcuno scenario di test; scelta la versione più semplice, documentata nel
-    Javadoc di classe.
+    all'ASM}: \texttt{assegnaPosto} decide e decrementa nello stesso passo, mentre l'ASM
+    decrementa al transito (INGR). \emph{Gestione}: la differenza non si vede in nessuno
+    scenario di test, quindi ho tenuto la versione più semplice e l'ho spiegata nel
+    Javadoc della classe.
 
-    \item \textbf{Assenza di thread-safety}. \emph{Gestione}: accettata — un solo
-    varco pilotato da una FSM sequenziale, come nel modello ASM; annotata come
-    limite per estensioni multi-varco.
+    \item \textbf{Assenza di thread-safety}. \emph{Gestione}: accettata, perché c'è un
+    solo varco pilotato da una FSM sequenziale, come nel modello ASM; l'ho annotata
+    come limite per eventuali estensioni multi-varco.
 
-    \item \textbf{Memoria a slot singolo per \texttt{posto\_assegnato} — difetto
-    presente anche nel modello ASM}. È l'osservazione più rilevante: sia la FSM
-    Java sia l'ASM memorizzano \emph{un solo} posto assegnato, ma il parcheggio
+    \item \textbf{Memoria a slot singolo per \texttt{posto\_assegnato}, difetto
+    presente anche nel modello ASM}. È l'osservazione più rilevante. Sia la FSM
+    Java sia l'ASM memorizzano un solo posto assegnato, ma il parcheggio
     può contenere due veicoli (1 STD + 1 DIS). Se entra uno STD, poi un DISABILE
-    (che sovrascrive lo slot), e il \emph{primo} veicolo esce, viene rilasciato il
-    posto sbagliato, corrompendo i contatori. \emph{Gestione}: l'implementazione è
-    \emph{conforme alla specifica} — è la specifica a presupporre implicitamente
-    ``un veicolo tracciato per volta'' senza associazione veicolo$\to$posto.
-    Documentato come limite noto \emph{della specifica}; correggerlo richiederebbe
+    (che sovrascrive lo slot), e infine esce il primo veicolo, viene rilasciato il
+    posto sbagliato e i contatori si corrompono. \emph{Gestione}: l'implementazione è
+    conforme alla specifica; è la specifica stessa a presupporre implicitamente
+    ``un veicolo tracciato per volta'', senza un'associazione veicolo$\to$posto.
+    L'ho documentato come limite noto della specifica: correggerlo richiederebbe
     una mappa veicolo$\to$posto a entrambi i livelli. È un esempio concreto di
     difetto che il testing di conformità non può rilevare (il codice rispetta il
     modello) e che emerge solo dall'ispezione critica.
 
     \item \textbf{Bottoni della UI sempre attivi}: \texttt{MainView} non disabilita
     i comandi in base allo stato (si può cliccare ``Pagamento'' in IDLE). Gli step
-    spuri risultano però innocui perché assorbiti dai self-loop della FSM — gli
+    spuri risultano però innocui perché assorbiti dai self-loop della FSM, cioè dagli
     stessi \texttt{if} senza \texttt{else} segnalati dal Model Advisor come MP2
     (\S\ref{sec:asmetav-vc}), che questa osservazione conferma a posteriori come
-    scelta difensiva corretta. \emph{Gestione}: accettata per un prototipo;
-    annotata la soluzione (\texttt{setEnabled} contestuale) per una versione reale.
+    scelta difensiva corretta. \emph{Gestione}: accettata per un prototipo; ho
+    annotato la soluzione (\texttt{setEnabled} contestuale) per una versione reale.
 \end{enumerate}
 
 \subsection{Bilancio dell'ispezione}
 
-L'ispezione LLM ha prodotto 7 osservazioni: nessun bug da correggere nel codice
-(2 mitigazioni documentali via Javadoc), ma ha individuato un \textbf{difetto
-latente nella specifica stessa} (osservazione 6) invisibile sia al testing di
-conformità sia alla verifica ESC — i contratti JML di \texttt{Parcheggio} sono
-rispettati anche nell'esecuzione che rilascia il posto sbagliato, perché il difetto
-sta a livello di FSM/modello. Questo complementa gli altri livelli di verifica del
-progetto: model checking e ESC dimostrano ciò che è formalizzato, l'ispezione trova
-ciò che la formalizzazione non cattura.
+In tutto sono uscite 7 osservazioni: nessun bug vero da correggere nel codice (in due
+casi mi è bastato chiarire le cose nel Javadoc), ma è saltato fuori un \textbf{difetto
+latente nella specifica stessa} (l'osservazione 6), che né il testing di conformità né
+la verifica ESC riuscivano a vedere. I contratti JML di \texttt{Parcheggio} restano
+infatti rispettati anche nell'esecuzione che rilascia il posto sbagliato, perché il
+problema sta a monte, a livello di FSM e di modello. Per me è la conferma che questi
+livelli di verifica si completano a vicenda: il model checking e l'ESC dimostrano quello
+che è formalizzato, mentre l'ispezione critica trova proprio quello che la
+formalizzazione si lascia sfuggire.

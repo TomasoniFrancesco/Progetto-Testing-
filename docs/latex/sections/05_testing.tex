@@ -3,6 +3,10 @@
 
 \subsection{Struttura dei test}
 
+Ho diviso i test in più classi, una per ogni aspetto che volevo coprire, così è più
+facile capire cosa controlla cosa. Nella tabella qui sotto ho messo l'elenco con,
+accanto, quello che ciascuna classe va a verificare.
+
 \begin{longtable}{@{}p{4.3cm}p{8.7cm}@{}}
 \toprule
 \textbf{Classe} & \textbf{Copre} \\
@@ -20,8 +24,13 @@
 
 \subsection{MC/DC}
 
-\textbf{Decisione 1} (ramo STD/ABBONATO): $D_1 = (\text{utente}{=}\text{STD} \lor
-\text{utente}{=}\text{ABBONATO}) \land \text{postiStd}{>}0$.
+Dentro \texttt{assegnaPosto} ci sono due decisioni composte, cioè con più condizioni
+messe in and/or, e per queste ho voluto una copertura MC/DC vera e propria: per ogni
+condizione serve una coppia di casi di test in cui, cambiando solo quella condizione,
+cambia anche il risultato della decisione. Vediamole una alla volta.
+
+La prima decisione è quella del ramo STD/ABBONATO: $D_1 = (\text{utente}{=}\text{STD}
+\lor \text{utente}{=}\text{ABBONATO}) \land \text{postiStd}{>}0$.
 
 \begin{longtable}{@{}p{1cm}p{0.6cm}p{0.6cm}p{0.6cm}p{0.6cm}p{2.6cm}p{5.5cm}@{}}
 \toprule
@@ -37,8 +46,8 @@ TC4 & F & T & T & T & POSTO\_STD & isola B (vs TC3) \\
 \label{tab:mcdc1}
 \end{longtable}
 
-\textbf{Decisione 2} (ramo DISABILE, fallback): $C_1{=}\text{postiDis}{>}0$,
-$C_2{=}\text{postiStd}{>}0$.
+La seconda decisione è quella del ramo DISABILE, cioè il fallback, con
+$C_1{=}\text{postiDis}{>}0$ e $C_2{=}\text{postiStd}{>}0$.
 
 \begin{longtable}{@{}p{1cm}p{1cm}p{1cm}p{2.6cm}p{6.5cm}@{}}
 \toprule
@@ -55,8 +64,12 @@ TC7 & F & F & NESSUNO & isola $C_2$ (vs TC6) \\
 
 \subsection{Combinatorial testing (pairwise)}
 
-Parametri: \texttt{tipoUtente} $\in$ \{STD, DISABILE, ABBONATO\}, \texttt{postiStd}
-$\in \{0, 1\}$, \texttt{postiDis} $\in \{0, 1\}$.
+L'assegnazione del posto dipende da tre parametri: il tipo di utente
+(\texttt{tipoUtente} $\in$ \{STD, DISABILE, ABBONATO\}), i posti standard liberi
+(\texttt{postiStd} $\in \{0, 1\}$) e quelli disabili liberi (\texttt{postiDis}
+$\in \{0, 1\}$). Provare tutte le combinazioni sarebbe possibile ma inutile: mi basta
+coprire tutte le \emph{coppie} di valori, ed è quello che fa la tabella pairwise qui
+sotto, che con sole 6 righe le copre tutte.
 
 \begin{longtable}{@{}p{0.6cm}p{2cm}p{1.6cm}p{1.6cm}p{3.5cm}@{}}
 \toprule
@@ -76,6 +89,13 @@ $\in \{0, 1\}$, \texttt{postiDis} $\in \{0, 1\}$.
 
 \subsection{Mockito}
 
+La FSM, a ogni cambio di stato, manda un messaggio a un oggetto \texttt{Display}. Per
+controllare che questi messaggi partano davvero, senza dover tirare in ballo la UI vera,
+ho usato Mockito: creo un finto \texttt{Display} e poi con \texttt{verify} controllo che
+il metodo \texttt{mostra} venga chiamato con il testo giusto. Nell'esempio qui sotto
+riempio il parcheggio e verifico che, al terzo ingresso, il display riceva davvero
+``Accesso negato''.
+
 \begin{lstlisting}[language=Java, caption={Verifica delle notifiche con Mockito}]
 @Test
 void notificaAccessoNegatoQuandoParcheggioPieno() {
@@ -89,9 +109,12 @@ void notificaAccessoNegatoQuandoParcheggioPieno() {
 
 \subsection{Model Based Testing}
 
-Lo scenario \texttt{test\_pieno.avalla} è stato tradotto passo-passo in
-\texttt{ScenarioAvallaTest}, con ogni blocco \texttt{set}/\texttt{step}/\texttt{check}
-commentato con il riferimento alla riga originale.
+L'idea del model based testing è prendere uno scenario già scritto sul modello astratto
+e tradurlo in un test sul codice vero. Ho preso lo scenario \texttt{test\_pieno.avalla} e
+l'ho riportato passo passo in \texttt{ScenarioAvallaTest}: ogni blocco
+\texttt{set}/\texttt{step}/\texttt{check} dell'avalla diventa la corrispondente riga
+JUnit, e ho lasciato un commento accanto a ciascuna per richiamare la riga originale
+dello scenario.
 
 \subsection{Esecuzione e copertura}
 
@@ -101,27 +124,29 @@ In Eclipse (o IntelliJ), tasto destro sulla cartella \texttt{src/test/java} $\to
 della vista JUnit con tutti i test verdi e il conteggio totale (es. ``Runs: N/N,
 Errors: 0, Failures: 0'').}
 
-La copertura è stata misurata con JaCoCo (\texttt{mvn verify}, report in
-\texttt{target/site/jacoco/index.html}). Dal report sono esclusi la UI Vaadin
-(testata end-to-end con Selenium, non misurabile da JaCoCo) e la classe di avvio
-Spring Boot (3 righe di boilerplate); l'esclusione è dichiarata nel \texttt{pom.xml}.
-Alla prima misurazione il package \texttt{core} risultava al 98\% di instruction e
-95\% di branch coverage, con \texttt{Parcheggio} già al \textbf{100\%/100\%} —
-coerente con la verifica ESC dei contratti (\S\ref{sec:jml-ref}) — e 3 branch
-scoperti in \texttt{SmartParkingFSM}: il self-loop di \texttt{gestisciUsc}
-(\texttt{transito\_ok} falso in USC), il ramo \texttt{display == null} di
-\texttt{cambiaStato}, e il \texttt{default} dello switch di \texttt{step}. I primi
-due erano veri buchi di test e sono stati chiusi aggiungendo due test mirati
-(\texttt{uscRestaInUscFinoAlTransito}, \texttt{fsmFunzionaSenzaDisplay}). Il terzo è
-\emph{strutturalmente irraggiungibile}: lo switch gestisce tutti e 8 i valori
-dell'enum \texttt{StatoSistema}, quindi il \texttt{default} (difensivo, lancia
-\texttt{IllegalStateException}) non può essere eseguito — è l'analogo Java dei rami
-infattibili già osservati con AsmetaV sul modello (\S\ref{sec:asmetav-vc}). Dopo
-l'aggiunta dei due test, l'unico branch non coperto del package è proprio quel
-\texttt{default}.
+La copertura l'ho misurata con JaCoCo, lanciando \texttt{mvn verify} e guardando il
+report in \texttt{target/site/jacoco/index.html}. Dal conteggio ho tolto la UI Vaadin
+(che testo end-to-end con Selenium e che JaCoCo non riesce a misurare) e la classe di
+avvio di Spring Boot, che sono solo 3 righe di boilerplate; l'esclusione è scritta nel
+\texttt{pom.xml}. Alla prima misurazione il package \texttt{core} stava al 98\% di
+instruction e al 95\% di branch. La classe \texttt{Parcheggio} era già al 100\%/100\%
+(coerente con la verifica ESC dei contratti, \S\ref{sec:jml-ref}), mentre in
+\texttt{SmartParkingFSM} restavano scoperti 3 branch: il self-loop di
+\texttt{gestisciUsc} (\texttt{transito\_ok} falso in USC), il ramo
+\texttt{display == null} di \texttt{cambiaStato} e il \texttt{default} dello switch di
+\texttt{step}. I primi due erano veri buchi di test, che ho chiuso aggiungendo due
+test mirati (\texttt{uscRestaInUscFinoAlTransito}, \texttt{fsmFunzionaSenzaDisplay}).
+Il terzo invece non è raggiungibile: lo switch gestisce tutti e 8 i valori dell'enum
+\texttt{StatoSistema}, per cui il \texttt{default} (difensivo, lancia
+\texttt{IllegalStateException}) non può mai essere eseguito. È l'analogo Java dei rami
+infattibili già osservati con AsmetaV sul modello (\S\ref{sec:asmetav-vc}). Dopo aver
+aggiunto i due test, quel \texttt{default} resta l'unico branch non coperto del
+package.
 
 \screenshot{jacoco_coverage_report}{Report JaCoCo -- totale (solo package core)}{%
-Pagina principale del report: 98\% instruction / 95\% branch coverage.}
+Pagina principale del report (stato finale, dopo l'aggiunta dei due test mirati):
+98\% instruction / 98\% branch coverage; l'unico elemento non coperto e' 1 branch su
+61 (il \texttt{default} difensivo dello switch, strutturalmente irraggiungibile).}
 
 \screenshot{jacoco_detail_parcheggio}{Report JaCoCo -- dettaglio per classe del package core}{%
 Vista del package \texttt{it.tvsw.smartparking.core}: \texttt{Parcheggio} 100\%/100\%,

@@ -2,28 +2,28 @@
 
 \subsection{Descrizione del sistema}
 
-SmartParking è un sistema di gestione automatizzata per un parcheggio dotato di due
-sbarre (ingresso e uscita), sensori di rilevamento veicolo e un totem per il
-riconoscimento del tipo di utente. Il parcheggio dispone di due categorie di posti:
-\textbf{standard} e riservati ai \textbf{disabili}, ciascuna con capacità massima
-(nel modello, per semplicità, entrambe pari a 1).
+SmartParking è un sistema che gestisce in automatico un parcheggio con due sbarre, una
+in ingresso e una in uscita, dei sensori che rilevano le auto e un totem che riconosce
+il tipo di utente. I posti sono di due categorie, standard e riservati ai disabili;
+nel modello, per semplicità, ne ho tenuto uno solo per categoria.
 
-Il sistema riconosce tre tipologie di utente: \textbf{STD} (utente occasionale, paga
-la sosta), \textbf{DISABILE} (permesso disabili, esente da pagamento, priorità sui
-posti riservati) e \textbf{ABBONATO} (abbonamento mensile, esente da pagamento).
-All'arrivo di un veicolo il sistema rileva la richiesta, identifica il tipo di utente
-e verifica la disponibilità di un posto adeguato prima di sollevare la sbarra. Se non
-c'è posto, l'accesso viene negato.
+Gli utenti che il sistema riconosce sono tre. L'utente STD è quello occasionale, che
+paga la sosta. Il DISABILE ha il permesso, non paga ed ha la priorità sui posti
+riservati. L'ABBONATO ha l'abbonamento mensile e, come il disabile, non paga. Quando
+arriva un'auto il sistema rileva la richiesta, capisce che tipo di utente è e controlla
+se c'è un posto adatto prima di alzare la sbarra. Se il posto non c'è, l'accesso viene
+negato.
 
-Un utente DISABILE ha priorità sui posti riservati: se questi sono esauriti, il
-sistema applica un \emph{fallback} assegnandogli un posto standard, se disponibile.
-Se anche i posti standard sono esauriti, l'accesso è negato.
+Il disabile, come detto, ha la precedenza sui posti riservati. Se però questi sono
+finiti, il sistema gli assegna comunque un posto standard, sempre che ce ne sia uno
+libero: è quello che chiamo \emph{fallback}. Se sono esauriti anche i posti standard,
+allora l'accesso viene negato anche a lui.
 
-In uscita, solo gli utenti STD transitano per una fase di pagamento; ABBONATI e
-DISABILI procedono direttamente all'uscita. Il comportamento è stato modellato
-formalmente in Abstract State Machine (ASM) tramite Asmeta, validato con scenari di
-simulazione (Avalla) e proprietà di model checking (CTL), e poi implementato in Java
-con contratti JML sul nucleo di dominio.
+In uscita l'unico che passa dalla fase di pagamento è l'utente STD; abbonati e disabili
+escono direttamente. Tutto questo comportamento l'ho prima descritto in modo formale con
+una macchina a stati (ASM) in Asmeta, poi l'ho validato con scenari di simulazione
+(Avalla) e con alcune proprietà di model checking (CTL), e infine l'ho implementato in
+Java mettendo i contratti JML sul nucleo del dominio.
 
 \subsection{Requisiti funzionali}
 
@@ -64,8 +64,8 @@ RNF3 & \textbf{Assenza di stati bloccanti}: da ogni stato transitorio esiste sem
 
 \subsection{Macchina a stati}
 
-La Figura~\ref{fig:fsm-diagram} mostra i pesi degli 8 stati operativi e le
-transizioni principali del modello ASM (\texttt{SmartParking.asm}).
+Nella Figura~\ref{fig:fsm-diagram} ho riportato gli 8 stati operativi del modello
+(\texttt{SmartParking.asm}) e le transizioni principali che li collegano.
 
 \begin{figure}[h!]
 \centering

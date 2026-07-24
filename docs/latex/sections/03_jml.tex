@@ -1,26 +1,26 @@
 \section{JML e verifica statica (ESC)}
 \label{sec:jml-ref}
 
-Per la parte di design by contract è stata annotata con JML la classe
-\texttt{Parcheggio} (package \texttt{it.tvsw.smartparking.core}), che costituisce il
-nucleo puro del dominio: gestisce i contatori dei posti liberi e la logica di
-assegnazione/rilascio, corrispondente alle regole \texttt{r\_gestione\_VER},
-\texttt{r\_gestione\_INGR} e \texttt{r\_gestione\_USC} del modello ASM. La classe è
-volutamente piccola e senza dipendenze esterne (solo \texttt{int} ed enum), per
-essere completamente dimostrabile da OpenJML in modalità Extended Static Checking.
-Come richiesto dalla consegna, \emph{il resto del sistema} (FSM, UI Vaadin, display,
-sensori) è Java normale, senza alcuna annotazione JML.
+Per la parte di design by contract ho annotato con JML la classe \texttt{Parcheggio}
+(package \texttt{it.tvsw.smartparking.core}), che è il nucleo puro del dominio: tiene i
+contatori dei posti liberi e gestisce l'assegnazione e il rilascio, cioè la stessa
+logica delle regole \texttt{r\_gestione\_VER}, \texttt{r\_gestione\_INGR} e
+\texttt{r\_gestione\_USC} del modello ASM. L'ho tenuta piccola apposta e senza
+dipendenze esterne (dentro ci sono solo \texttt{int} ed enum), proprio perché così
+OpenJML riesce a dimostrarla tutta in modalità Extended Static Checking. Come chiedeva
+la consegna, il resto del sistema (la FSM, la UI Vaadin, il display, i sensori) è Java
+normale, senza nessuna annotazione JML.
 
-Nota di visibilità: i campi \texttt{postiStd}/\texttt{postiDis} sono dichiarati
-\texttt{private /*@ spec\_public @*/}, perché le clausole di specifica
-\emph{public} (invarianti e postcondizioni) possono riferire solo elementi con
-visibilità di specifica public; senza \texttt{spec\_public} OpenJML segnala un
-errore di visibilità JML.
+Un dettaglio sulla visibilità: i campi \texttt{postiStd} e \texttt{postiDis} li ho
+dichiarati \texttt{private /*@ spec\_public @*/}. Il motivo è che le clausole di
+specifica public, come le invarianti e le postcondizioni, possono nominare solo cose
+visibili a livello di specifica public; senza lo \texttt{spec\_public} OpenJML si
+lamenta con un errore di visibilità.
 
 \subsection{Invarianti}
 
-Sono stati creati due invarianti di classe, che devono valere in ogni stato
-osservabile dell'oggetto (da dopo il costruttore in poi):
+Ho scritto due invarianti di classe, che devono valere in ogni stato osservabile
+dell'oggetto, cioè da dopo il costruttore in poi:
 
 \begin{itemize}
 \item il numero di posti standard liberi è sempre compreso tra 0 e la capacità
@@ -29,10 +29,10 @@ massima \texttt{MAX\_STD};
 massima \texttt{MAX\_DIS}.
 \end{itemize}
 
-Sono la traduzione a livello Java delle proprietà di safety verificate con il model
-checking sul modello ASM (\texttt{ag(posti >= 0)} e \texttt{ag(posti <= 1)}, cfr.\
-\S\ref{sec:asmetav-vc}): la stessa proprietà viene così garantita su tre livelli
-(modello, contratto, test).
+In pratica sono la versione Java delle proprietà di safety che avevo già verificato con
+il model checking sul modello ASM (\texttt{ag(posti >= 0)} e \texttt{ag(posti <= 1)},
+si veda \S\ref{sec:asmetav-vc}). Così la stessa proprietà finisce per essere garantita
+su tre livelli: il modello, il contratto e i test.
 
 \begin{lstlisting}[style=terminal, caption={Invarianti di classe}]
 //@ public invariant 0 <= postiStd && postiStd <= MAX_STD;
@@ -44,7 +44,7 @@ private /*@ spec_public @*/ int postiDis;
 
 \subsection{Costruttori}
 
-Per i costruttori i contratti creati sono i seguenti:
+Per i costruttori ho scritto questi contratti:
 
 \begin{itemize}
 \item il costruttore di default garantisce (\texttt{ensures}) lo stato iniziale del
@@ -71,8 +71,8 @@ public Parcheggio(int postiStdIniziali, int postiDisIniziali) { ... }
 
 \subsection{Metodo \texttt{assegnaPosto}}
 
-È il metodo con il contratto più ricco, perché replica la logica di assegnazione di
-\texttt{r\_gestione\_VER}. I contratti creati sono i seguenti:
+Questo è il metodo con il contratto più corposo, perché deve rispecchiare tutta la
+logica di assegnazione di \texttt{r\_gestione\_VER}. I contratti sono questi:
 
 \begin{itemize}
 \item viene richiesto che l'utente non sia \texttt{null};
@@ -109,8 +109,8 @@ public TipoPosto assegnaPosto(TipoUtente utente) { ... }
 
 \subsection{Metodo \texttt{liberaPosto}}
 
-Corrisponde al rilascio del posto in \texttt{r\_gestione\_USC}. I contratti creati
-sono i seguenti:
+Questo metodo corrisponde al rilascio del posto della regola \texttt{r\_gestione\_USC}.
+I contratti sono questi:
 
 \begin{itemize}
 \item viene richiesto che il posto non sia \texttt{null};
@@ -136,9 +136,9 @@ public void liberaPosto(TipoPosto posto) { ... }
 
 \subsection{Metodi getter}
 
-I getter sono annotati \texttt{/*@ pure @*/} (nessun effetto collaterale):
-condizione necessaria per poterli usare all'interno delle clausole JML stesse. La
-postcondizione garantisce che restituiscano esattamente il valore del campo.
+I due getter li ho annotati \texttt{/*@ pure @*/}, cioè senza effetti collaterali: è la
+condizione che serve per poterli usare dentro le clausole JML. La postcondizione dice
+solo che restituiscono il valore del campo, niente di più.
 
 \begin{lstlisting}[style=terminal, caption={Getter puri}]
 //@ ensures \result == postiStd;
@@ -150,17 +150,67 @@ public /*@ pure @*/ int getPostiDis() { ... }
 
 \subsection{Verifica dei contratti con OpenJML (ESC)}
 
-I contratti sono stati verificati staticamente con OpenJML (release 21.0.27, build
-nativa macOS arm64) in modalità \texttt{--esc}: per ogni metodo il tool traduce
-codice e contratti in condizioni logiche e usa il solver SMT (Z3) per dimostrare che
-\emph{ogni} possibile esecuzione rispetta postcondizioni e invarianti — a differenza
-del testing, che esplora solo casi specifici. Il comando, dalla root del progetto:
+Una volta scritti i contratti li ho verificati staticamente con OpenJML (release
+21.0.27, build nativa per macOS arm64) in modalità \texttt{--esc}. Per ogni metodo il
+tool traduce codice e contratti in formule logiche e chiede al solver Z3 di dimostrare
+che \emph{ogni} esecuzione possibile rispetta postcondizioni e invarianti; è un
+controllo più forte del testing, che invece guarda solo alcuni casi. Il comando, dalla
+root del progetto, è questo:
 
 \begin{lstlisting}[style=terminal, caption={Comando di verifica ESC}]
 $ openjml --esc --progress \
     -cp java/src/main/java \
     java/src/main/java/it/tvsw/smartparking/core/Parcheggio.java
 \end{lstlisting}
+
+\subsubsection*{Un contratto che inizialmente non chiudeva}
+
+Arrivare a ``tutti Verified'' non è stato immediato. Alcuni contratti, nella loro
+prima stesura, venivano rifiutati dal solver, e vale la pena mostrare perché e come
+sono stati corretti: è lo stesso tipo di ostacolo che rende difficile la chiusura ESC
+su codice con aritmetica non vincolata.
+
+Il caso più chiaro è \texttt{liberaPosto}. Nella versione iniziale la postcondizione
+descriveva l'incremento del contatore, ma \emph{mancava la precondizione} che vieta
+di liberare un posto quando il contatore è già al massimo:
+
+\begin{lstlisting}[style=terminal, caption={Prima versione di liberaPosto (senza il requires di capacità)}]
+//@ requires posto != null;
+//@ ensures posto == TipoPosto.POSTO_STD ==>
+//@     postiStd == \old(postiStd) + 1 && postiDis == \old(postiDis);
+public void liberaPosto(TipoPosto posto) { ... }
+\end{lstlisting}
+
+Con questo contratto, OpenJML esplora anche lo stato \texttt{postiStd == MAX\_STD}:
+in quel caso \texttt{postiStd + 1} vale \texttt{MAX\_STD + 1}, che \emph{viola
+l'invariante di classe} \texttt{postiStd <= MAX\_STD}. Il solver non riesce quindi a
+ristabilire l'invariante all'uscita del metodo e segnala l'errore:
+
+\begin{lstlisting}[style=terminal, caption={Errore ESC sulla prima versione}]
+Parcheggio.java:.. warning: The prover cannot establish an assertion
+   (InvariantExit) in method liberaPosto
+   postiStd == \old(postiStd) + 1 ...
+   Associated declaration: invariant 0 <= postiStd && postiStd <= MAX_STD
+\end{lstlisting}
+
+È lo stesso ostacolo (un'operazione aritmetica che può ``sforare'' un limite) per cui
+su un dominio più ricco, con array e contatori non limitati, la chiusura completa
+diventa molto difficile. Qui la soluzione è rafforzare la precondizione, in modo che
+il chiamante garantisca lo spazio per l'incremento:
+
+\begin{lstlisting}[style=terminal, caption={Versione corretta: il requires di capacità chiude la prova}]
+//@ requires posto == TipoPosto.POSTO_STD ==> postiStd < MAX_STD;
+//@ requires posto == TipoPosto.POSTO_DIS ==> postiDis < MAX_DIS;
+\end{lstlisting}
+
+Con \texttt{postiStd < MAX\_STD} assunto all'ingresso, dopo l'incremento vale
+\texttt{postiStd <= MAX\_STD} e l'invariante è ristabilita: il metodo passa a
+\emph{Verified}. È proprio questa disciplina, cioè vincolare via
+\texttt{requires} o invariante tutto ciò che entra in un'operazione aritmetica, che
+permette a \texttt{Parcheggio} di chiudere tutti i contratti, cosa che su un nucleo con
+interi liberi non sarebbe possibile. Un secondo ostacolo, di natura diversa, era di
+pura visibilità JML: i campi \texttt{private} referenziati da clausole \texttt{public}.
+L'ho risolto con \texttt{spec\_public}, come descritto nella nota a inizio sezione.
 
 \screenshot{openjml_esc_output}{Output di \texttt{openjml --esc}: tutti i metodi Verified}{%
 Eseguire il comando sopra da terminale. Lo screenshot deve mostrare l'esito

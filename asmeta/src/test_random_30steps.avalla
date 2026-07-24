@@ -1,0 +1,273 @@
+//// starting scenario
+scenario test_random_30steps
+load SmartParking.asm
+check stato = IDLE;
+set sens_in := true;
+step
+check stato = CHK_IN;
+set sens_in := true;
+step
+check stato = VER;
+check posti_std = 1;
+check posti_dis = 1;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+step
+check stato = INGR;
+check posti_std = 1;
+check posti_dis = 1;
+check posto_assegnato = POSTO_DIS;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := false;
+step
+check stato = INGR;
+check posti_std = 1;
+check posti_dis = 1;
+check posto_assegnato = POSTO_DIS;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = POSTO_DIS;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+step
+check stato = CHK_IN;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = POSTO_DIS;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+step
+check stato = VER;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = POSTO_DIS;
+set sens_in := true;
+set utente_rilevato := STD;
+set transito_ok := true;
+step
+check stato = INGR;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := STD;
+set transito_ok := false;
+step
+check stato = INGR;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := STD;
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := STD;
+set transito_ok := true;
+step
+check stato = CHK_IN;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := STD;
+set transito_ok := true;
+step
+check stato = VER;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+step
+check stato = NEG;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+set auto_via := true;
+step
+check stato = IDLE;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+set auto_via := true;
+step
+check stato = CHK_IN;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+set auto_via := true;
+step
+check stato = VER;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+set auto_via := true;
+step
+check stato = NEG;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+set auto_via := false;
+step
+check stato = NEG;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+set auto_via := true;
+step
+check stato = IDLE;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := false;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+set auto_via := true;
+set sens_out := true;
+step
+check stato = CHK_OUT;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := false;
+set utente_rilevato := STD;
+set transito_ok := true;
+set auto_via := true;
+set sens_out := true;
+step
+check stato = TARIF;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := false;
+set utente_rilevato := STD;
+set transito_ok := true;
+set auto_via := true;
+set sens_out := true;
+set pagamento_ok := true;
+step
+check stato = USC;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := false;
+set utente_rilevato := STD;
+set transito_ok := true;
+set auto_via := true;
+set sens_out := true;
+set pagamento_ok := true;
+step
+check stato = IDLE;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = NESSUNO;
+set sens_in := true;
+set utente_rilevato := STD;
+set transito_ok := true;
+set auto_via := true;
+set sens_out := true;
+set pagamento_ok := true;
+step
+check stato = CHK_IN;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = NESSUNO;
+set sens_in := true;
+set utente_rilevato := STD;
+set transito_ok := true;
+set auto_via := true;
+set sens_out := true;
+set pagamento_ok := true;
+step
+check stato = VER;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = NESSUNO;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+set auto_via := true;
+set sens_out := true;
+set pagamento_ok := true;
+step
+check stato = INGR;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := false;
+set auto_via := true;
+set sens_out := true;
+set pagamento_ok := true;
+step
+check stato = INGR;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := false;
+set auto_via := true;
+set sens_out := true;
+set pagamento_ok := true;
+step
+check stato = INGR;
+check posti_std = 1;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := true;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+set auto_via := true;
+set sens_out := true;
+set pagamento_ok := true;
+step
+check stato = IDLE;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+set sens_in := false;
+set utente_rilevato := DISABILE;
+set transito_ok := true;
+set auto_via := true;
+set sens_out := true;
+set pagamento_ok := true;
+step
+check stato = CHK_OUT;
+check posti_std = 0;
+check posti_dis = 0;
+check posto_assegnato = POSTO_STD;
+step

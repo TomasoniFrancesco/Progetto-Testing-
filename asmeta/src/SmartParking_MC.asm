@@ -6,18 +6,22 @@ signature:
 	enum domain StatoSistema = {IDLE | CHK_IN | VER | NEG | INGR | CHK_OUT | TARIF | USC}
 	enum domain TipoUtente = {STD | DISABILE | ABBONATO}
 	enum domain TipoPosto = {POSTO_STD | POSTO_DIS | NESSUNO}
-	dynamic monitored sens_in: Boolean
-	dynamic monitored sens_out: Boolean
-	dynamic monitored transito_ok: Boolean
-	dynamic monitored auto_via: Boolean
-	dynamic monitored utente_rilevato: TipoUtente
-	dynamic monitored pagamento_ok: Boolean
-	dynamic controlled stato: StatoSistema
-	dynamic controlled posti_std: Integer
-	dynamic controlled posti_dis: Integer
-	dynamic controlled posto_assegnato: TipoPosto
+	
+	domain Posti subsetof Integer
+	monitored sens_in: Boolean
+	monitored sens_out: Boolean
+	monitored transito_ok: Boolean
+	monitored auto_via: Boolean
+	monitored utente_rilevato: TipoUtente
+	monitored pagamento_ok: Boolean
+	controlled stato: StatoSistema
+	controlled posti_std: Posti
+	controlled posti_dis: Posti
+	controlled posto_assegnato: TipoPosto
 
 definitions:
+	domain Posti = {0,1,2}
+
 	rule r_gestione_IDLE =
 		if sens_in = true then stato := CHK_IN
 		else if sens_out = true then stato := CHK_OUT endif endif
@@ -80,8 +84,6 @@ definitions:
 	CTLSPEC ag(posti_std >= 0)
 	// Safety: il numero di posti disabili liberi non e' mai negativo
 	CTLSPEC ag(posti_dis >= 0)
-	// Raggiungibilita': esiste un cammino che porta al rifiuto di accesso (NEG)
-	CTLSPEC ef(stato = NEG)
 	// Safety: se si sta per assegnare un posto standard, deve essercene almeno uno libero
 	CTLSPEC ag((stato = INGR and posto_assegnato = POSTO_STD) implies posti_std > 0)
 
@@ -96,11 +98,21 @@ definitions:
 	// Raggiungibilita': e' possibile arrivare allo stato di pagamento tariffa (TARIF),
 	// cioe' il ramo "utente STD in uscita" e' effettivamente percorribile
 	CTLSPEC ef(stato = TARIF)
-	// Raggiungibilita': e' possibile arrivare allo stato di uscita fisica (USC)
-	CTLSPEC ef(stato = USC)
 	// Liveness: da qualunque configurazione in cui il sistema e' in attesa di pagamento (TARIF)
 	// esiste sempre un cammino che riporta il sistema in IDLE (nessun blocco permanente in cassa)
 	CTLSPEC ag(stato = TARIF implies ef(stato = IDLE))
+
+	//  SPECIFICHE VOLUTAMENTE FALSE (il controesempio generato ne dimostra la falsita')
+	// FALSA: "l'accesso non viene mai negato". Il controesempio generato da NuSMV:
+	// un ABBONATO occupa l'unico posto standard, il veicolo successivo (non DISABILE)
+	// viene rifiutato (NEG) nonostante il posto disabili sia ancora libero: dimostra
+	// sia la raggiungibilita' di NEG sia la politica di riserva dei posti disabili.
+	CTLSPEC ag(stato != NEG)
+	// FALSA: "da TARIF il sistema torna SEMPRE (su ogni cammino) in IDLE". A differenza
+	// della versione vera con ef (esiste un cammino), qui af richiede che accada su tutti
+	// i cammini: il controesempio e' il loop in cui pagamento_ok resta false per sempre
+	// (l'utente non paga mai) e il sistema rimane bloccato in TARIF.
+	CTLSPEC ag(stato = TARIF implies af(stato = IDLE))
 
 	main rule r_Main =
 		par

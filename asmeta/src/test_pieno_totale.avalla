@@ -10,6 +10,8 @@ load SmartParking.asm
 check stato = IDLE;
 check posti_std = 1;
 check posti_dis = 1;
+// all'inizio c'e' posto: parcheggioPieno (forall sugli utenti) deve essere falso
+check parcheggioPieno = false;
 
 // --- 1. ENTRA L'AUTO STD: occupa il posto standard ---
 set sens_in := true;
@@ -50,6 +52,8 @@ step
 check stato = IDLE;
 check posti_dis = 0;
 check posti_std = 0; // PARCHEGGIO COMPLETAMENTE PIENO
+// ora nessuno puo' piu' entrare: il forall parcheggioPieno deve essere vero
+check parcheggioPieno = true;
 
 // --- 3. ARRIVA UN TERZO UTENTE (DISABILE): deve essere respinto ---
 set transito_ok := false;

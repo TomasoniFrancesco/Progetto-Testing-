@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.6.9)  11 JUL 2026 13:36
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.6.9)  24 JUL 2026 17:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -835,19 +835,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
 
 [2] (./sections/01_requisiti.tex
-Overfull \hbox (14.09183pt too wide) in paragraph at lines 11--17
-[]\T1/cmr/m/n/10.95 Il sistema riconosce tre tipologie di utente: \T1/cmr/bx/n/
-10.95 STD \T1/cmr/m/n/10.95 (utente occasionale, paga la sosta), \T1/cmr/bx/n/1
-0.95 DISABILE
- []
-
-
-Overfull \hbox (12.68472pt too wide) in paragraph at lines 11--17
-\T1/cmr/m/n/10.95 (permesso disabili, esente da pagamento, priorità sui posti r
-iservati) e \T1/cmr/bx/n/10.95 ABBONATO \T1/cmr/m/n/10.95 (abbonamento
- []
-
-
 Underfull \hbox (badness 7722) in paragraph at lines 36--36
 []|\T1/cmr/m/n/10.95 Identificare il tipo di utente (STD, DISABILE,
  []
@@ -892,18 +879,25 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <12> not available
 (Font)              Font shape `T1/cmtt/m/n' tried instead on input line 3.
 
+Overfull \hbox (11.6145pt too wide) in paragraph at lines 5--16
+\T1/cmr/m/n/10.95 funzioni monitorate (\T1/cmtt/m/n/10.95 sens_-in\T1/cmr/m/n/1
+0.95 , \T1/cmtt/m/n/10.95 sens_-out\T1/cmr/m/n/10.95 , \T1/cmtt/m/n/10.95 trans
+ito_-ok\T1/cmr/m/n/10.95 , \T1/cmtt/m/n/10.95 auto_-via\T1/cmr/m/n/10.95 , \T1/
+cmtt/m/n/10.95 utente_-rilevato\T1/cmr/m/n/10.95 , \T1/cmtt/m/n/10.95 pagamento
+_-
+ []
+
+
+Overfull \hbox (14.43855pt too wide) in paragraph at lines 5--16
+\T1/cmr/m/n/10.95 ho aggiunto una funzione derivata n-aria (binaria), \T1/cmtt/
+m/n/10.95 assegnabile: Prod(TipoUtente, TipoPosto)
+ []
+
 (/usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2020/03/24 1.8d listings language file
 )
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <9> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 17.
-LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 25.
-
-Overfull \hbox (12.7454pt too wide) in paragraph at lines 51--59
-\T1/cmr/m/n/10.95 versione ``appiattita'' a if annidati, comportamentalmente id
-entica, per massimizzare la compatibilità
- []
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 18.
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -914,71 +908,75 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
 
 [5]
-<images/asmeta_simulator_ingresso_std.png, id=274, 704.6325pt x 454.69875pt>
+<images/asmeta_simulator_ingresso_std.png, id=264, 704.6325pt x 454.69875pt>
 File: images/asmeta_simulator_ingresso_std.png Graphic file (type png)
 <use images/asmeta_simulator_ingresso_std.png>
 Package pdftex.def Info: images/asmeta_simulator_ingresso_std.png  used on inpu
-t line 72.
+t line 87.
 (pdftex.def)             Requested size: 386.96027pt x 249.70348pt.
-<images/asmeta_simulator_uscita_std.png, id=276, 975.645pt x 453.695pt>
+<images/asmeta_simulator_uscita_std.png, id=266, 975.645pt x 453.695pt>
 File: images/asmeta_simulator_uscita_std.png Graphic file (type png)
 <use images/asmeta_simulator_uscita_std.png>
 Package pdftex.def Info: images/asmeta_simulator_uscita_std.png  used on input 
-line 78.
+line 93.
 (pdftex.def)             Requested size: 386.96027pt x 179.94484pt.
 
-Underfull \hbox (badness 10000) in paragraph at lines 87--88
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 102--103
 []|\T1/cmr/m/n/10.95 Ciclo completo ABBONATO: ingresso senza
  []
 
 
-Underfull \hbox (badness 3199) in paragraph at lines 87--88
+Underfull \hbox (badness 3199) in paragraph at lines 102--103
 \T1/cmr/m/n/10.95 pagamento, uscita diretta (salta TARIF). Bug
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 88--89
+Underfull \hbox (badness 10000) in paragraph at lines 103--104
 []|\T1/cmr/m/n/10.95 Ciclo DISABILE: assegnazione POSTO_-DIS,
  []
 
 
-Underfull \hbox (badness 1490) in paragraph at lines 88--89
+Underfull \hbox (badness 1490) in paragraph at lines 103--104
 \T1/cmtt/m/n/10.95 posto_-assegnato \T1/cmr/m/n/10.95 resta POSTO_-DIS durante 
 la
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 90--90
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
 []|\T1/cmtt/m/n/10.95 test_-disabile_-
  []
 
 
-Underfull \hbox (badness 1688) in paragraph at lines 90--91
+Underfull \hbox (badness 1688) in paragraph at lines 105--106
 []|\T1/cmr/m/n/10.95 Copre il fallback: un secondo DISABILE, con
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 91--91
+Underfull \hbox (badness 10000) in paragraph at lines 106--106
 []|\T1/cmtt/m/n/10.95 test_-pagamento_-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 92--92
+Underfull \hbox (badness 10000) in paragraph at lines 107--107
 []|\T1/cmtt/m/n/10.95 test_-pieno_-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 92--93
+Underfull \hbox (badness 10000) in paragraph at lines 107--108
 []|\T1/cmr/m/n/10.95 Parcheggio completamente saturo (STD +
  []
 
 
-Underfull \hbox (badness 3701) in paragraph at lines 92--93
+Underfull \hbox (badness 3701) in paragraph at lines 107--108
 \T1/cmr/m/n/10.95 DISABILE), un terzo utente DISABILE viene
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 93--93
+Underfull \hbox (badness 10000) in paragraph at lines 108--108
 []|\T1/cmtt/m/n/10.95 test_-random_-
  []
 
@@ -990,35 +988,38 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 (fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
 
-[6 <./images/asmeta_simulator_ingresso_std.png> <./images/asmeta_simulator_usci
-ta_std.png>]
-<images/asmeta_animator_test_abbonato.png, id=286, 974.64125pt x 449.68pt>
+[6 <./images/asmeta_simulator_ingresso_std.png>]
+<images/asmeta_animator_test_abbonato.png, id=288, 974.64125pt x 449.68pt>
 File: images/asmeta_animator_test_abbonato.png Graphic file (type png)
 <use images/asmeta_animator_test_abbonato.png>
 Package pdftex.def Info: images/asmeta_animator_test_abbonato.png  used on inpu
-t line 102.
+t line 117.
 (pdftex.def)             Requested size: 386.96027pt x 178.53766pt.
-<images/asmeta_animator_test_disabile_fallback.png, id=287, 975.645pt x 450.683
+<images/asmeta_animator_test_disabile_fallback.png, id=289, 975.645pt x 450.683
 75pt>
 File: images/asmeta_animator_test_disabile_fallback.png Graphic file (type png)
 
 <use images/asmeta_animator_test_disabile_fallback.png>
 Package pdftex.def Info: images/asmeta_animator_test_disabile_fallback.png  use
-d on input line 106.
+d on input line 121.
 (pdftex.def)             Requested size: 386.96027pt x 178.7505pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-<images/asmeta_animator_test_pieno_totale.png, id=288, 1197.47375pt x 452.69125
+<images/asmeta_animator_test_pieno_totale.png, id=290, 1197.47375pt x 452.69125
 pt>
 File: images/asmeta_animator_test_pieno_totale.png Graphic file (type png)
 <use images/asmeta_animator_test_pieno_totale.png>
 Package pdftex.def Info: images/asmeta_animator_test_pieno_totale.png  used on 
-input line 110.
+input line 125.
 (pdftex.def)             Requested size: 386.96027pt x 146.2802pt.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+
+Overfull \vbox (202.53001pt too high) has occurred while \output is active []
+
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1028,61 +1029,61 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 (fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
 
-[7 <./images/asmeta_animator_test_abbonato.png>]
-<images/asmetav_coverage_report.png, id=296, 516.93124pt x 659.46375pt>
+[7 <./images/asmeta_simulator_uscita_std.png> <./images/asmeta_animator_test_ab
+bonato.png>]
+<images/asmetav_coverage_report.png, id=300, 516.93124pt x 659.46375pt>
 File: images/asmetav_coverage_report.png Graphic file (type png)
 <use images/asmetav_coverage_report.png>
 Package pdftex.def Info: images/asmetav_coverage_report.png  used on input line
- 137.
+ 152.
 (pdftex.def)             Requested size: 386.96027pt x 493.67082pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 
-Overfull \hbox (27.53773pt too wide) in paragraph at lines 141--143
-\T1/cmr/m/n/10.95 Sono state definite 10 CTLSPEC (Tabella [][]5[][]), suddivise
- in proprietà di sicurezza (safety), raggiungibilità
- []
-
-
-Overfull \hbox (10.14577pt too wide) in paragraph at lines 151--151
-[]|\T1/cmr/m/n/10.95 Raggiungibilità| 
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 152--152
+Underfull \hbox (badness 10000) in paragraph at lines 168--168
 []|\T1/cmtt/m/n/10.95 ag((stato=INGR and posto_-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 152--152
+Underfull \hbox (badness 10000) in paragraph at lines 168--168
 \T1/cmtt/m/n/10.95 assegnato=POSTO_-STD) implies posti_-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 155--155
+Underfull \hbox (badness 10000) in paragraph at lines 171--171
 []|\T1/cmtt/m/n/10.95 ag((stato=INGR and posto_-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 155--155
+Underfull \hbox (badness 10000) in paragraph at lines 171--171
 \T1/cmtt/m/n/10.95 assegnato=POSTO_-DIS) implies posti_-
  []
 
 
-Overfull \hbox (10.14577pt too wide) in paragraph at lines 156--156
+Overfull \hbox (10.14577pt too wide) in paragraph at lines 172--172
 []|\T1/cmr/m/n/10.95 Raggiungibilità| 
  []
 
 
-Overfull \hbox (10.14577pt too wide) in paragraph at lines 157--157
-[]|\T1/cmr/m/n/10.95 Raggiungibilità| 
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 158--158
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
 []|\T1/cmtt/m/n/10.95 ag(stato=TARIF implies
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 174--174
+[]|\T1/cmr/m/n/10.95 Falsa
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 175--175
+[]|\T1/cmtt/m/n/10.95 ag(stato=TARIF implies
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 175--175
+[]|\T1/cmr/m/n/10.95 Falsa
  []
 
 
@@ -1095,71 +1096,62 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 [8 <./images/asmeta_animator_test_disabile_fallback.png> <./images/asmeta_anima
 tor_test_pieno_totale.png>]
-<images/asmetasmv_ctlspec_results.png, id=307, 1248.665pt x 474.77374pt>
+<images/asmetasmv_ctlspec_results.png, id=312, 412.54124pt x 652.4375pt>
 File: images/asmetasmv_ctlspec_results.png Graphic file (type png)
 <use images/asmetasmv_ctlspec_results.png>
 Package pdftex.def Info: images/asmetasmv_ctlspec_results.png  used on input li
-ne 168.
-(pdftex.def)             Requested size: 386.96027pt x 147.12762pt.
+ne 203.
+(pdftex.def)             Requested size: 386.96027pt x 611.98717pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-<images/asmetasmv_random_trace.png, id=308, 1199.48125pt x 359.3425pt>
+<images/asmetasmv_random_trace.png, id=313, 1199.48125pt x 359.3425pt>
 File: images/asmetasmv_random_trace.png Graphic file (type png)
 <use images/asmetasmv_random_trace.png>
 Package pdftex.def Info: images/asmetasmv_random_trace.png  used on input line 
-173.
+208.
 (pdftex.def)             Requested size: 386.96027pt x 115.92407pt.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 
-Overfull \hbox (0.43193pt too wide) in paragraph at lines 183--186
-[]\T1/cmr/bx/n/10.95 MP1, MP3, MP4, MP7 -- nessuna segnalazione\T1/cmr/m/n/10.9
-5 : nessun aggiornamento inconsistente,
+Overfull \hbox (5.6157pt too wide) in paragraph at lines 212--216
+\T1/cmr/m/n/10.95 sul modello semplificato \T1/cmtt/m/n/10.95 SmartParking_-MC.
+asm\T1/cmr/m/n/10.95 : quello principale, con \T1/cmtt/m/n/10.95 Integer \T1/cm
+r/m/n/10.95 e funzioni derivate,
  []
 
 
-Overfull \hbox (5.46255pt too wide) in paragraph at lines 194--199
-\T1/cmr/m/n/10.95 non è un difetto ma una \T1/cmr/m/it/10.95 conferma\T1/cmr/m/
-n/10.95 . Il dominio \T1/cmtt/m/n/10.95 Posti = {0..2} \T1/cmr/m/n/10.95 è stat
-o scelto deliberatamente
+Overfull \hbox (30.4827pt too wide) in paragraph at lines 218--221
+[]\T1/cmr/bx/n/10.95 MP1, MP3, MP4, MP7 \T1/cmr/m/n/10.95 non hanno prodotto se
+gnalazioni: nessun aggiornamento inconsistente,
  []
 
-<images/model_advisor_output.png, id=309, 1387.1825pt x 784.9325pt>
+<images/model_advisor_output.png, id=314, 1387.1825pt x 784.9325pt>
 File: images/model_advisor_output.png Graphic file (type png)
 <use images/model_advisor_output.png>
-Package pdftex.def Info: images/model_advisor_output.png  used on input line 20
-5.
+Package pdftex.def Info: images/model_advisor_output.png  used on input line 24
+0.
 (pdftex.def)             Requested size: 386.96027pt x 218.95317pt.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-<images/atgt_scenario_list.png, id=310, 164.615pt x 103.38625pt>
+<images/atgt_scenario_list.png, id=315, 164.615pt x 103.38625pt>
 File: images/atgt_scenario_list.png Graphic file (type png)
 <use images/atgt_scenario_list.png>
-Package pdftex.def Info: images/atgt_scenario_list.png  used on input line 212.
+Package pdftex.def Info: images/atgt_scenario_list.png  used on input line 247.
 
 (pdftex.def)             Requested size: 386.96027pt x 243.06023pt.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 ) (./sections/04_java.tex
-Overfull \hbox (16.05577pt too wide) in paragraph at lines 214--1
-\T1/cmr/m/n/10.95 Gli scenari generati (\T1/cmtt/m/n/10.95 asmeta/src/abstracte
-sts/testtest*.avalla\T1/cmr/m/n/10.95 ) sono consultabili direttamente
+Overfull \hbox (10.42928pt too wide) in paragraph at lines 249--1
+\T1/cmr/m/n/10.95 Gli scenari che ATGT genera (\T1/cmtt/m/n/10.95 asmeta/src/ab
+stractests/testtest*.avalla\T1/cmr/m/n/10.95 ) si possono guardare
  []
 
-
-Overfull \hbox (21.01395pt too wide) in paragraph at lines 5--8
-\T1/cmr/m/n/10.95 i test, JaCoCo per la copertura e PIT per il mutation testing
-. Il package \T1/cmtt/m/n/10.95 it.tvsw.smartparking.core
- []
-
-(/usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
-File: lstlang1.sty 2020/03/24 1.8d listings language file
-)
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 13.59999pt, for example:
@@ -1186,272 +1178,67 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 (fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
 
-[11 <./images/asmetasmv_ctlspec_results.png> <./images/asmetasmv_random_trace.p
-ng> <./images/model_advisor_output.png>]
-<images/vaadin_ui_idle.png, id=349, 698.61pt x 512.91624pt>
+[11 <./images/asmetasmv_ctlspec_results.png>]
+
+LaTeX Warning: Text page 12 contains only floats.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 13.59999pt, for example:
+(fancyhdr)                \setlength{\headheight}{13.59999pt}.
+(fancyhdr)                You might also make \topmargin smaller to compensate:
+
+(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
+
+[12 <./images/asmetasmv_random_trace.png> <./images/model_advisor_output.png> <
+./images/atgt_scenario_list.png>]
+(/usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
+File: lstlang1.sty 2020/03/24 1.8d listings language file
+)
+<images/vaadin_ui_idle.png, id=346, 698.61pt x 512.91624pt>
 File: images/vaadin_ui_idle.png Graphic file (type png)
 <use images/vaadin_ui_idle.png>
-Package pdftex.def Info: images/vaadin_ui_idle.png  used on input line 50.
+Package pdftex.def Info: images/vaadin_ui_idle.png  used on input line 52.
 (pdftex.def)             Requested size: 386.96027pt x 284.10838pt.
-<images/vaadin_ui_ingresso_std.png, id=350, 607.26875pt x 407.5225pt>
-File: images/vaadin_ui_ingresso_std.png Graphic file (type png)
-<use images/vaadin_ui_ingresso_std.png>
-Package pdftex.def Info: images/vaadin_ui_ingresso_std.png  used on input line 
-54.
-(pdftex.def)             Requested size: 386.96027pt x 259.68178pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-<images/vaadin_ui_neg.png, id=351, 605.26125pt x 431.6125pt>
+<images/vaadin_ui_ingresso_std.png, id=347, 607.26875pt x 407.5225pt>
+File: images/vaadin_ui_ingresso_std.png Graphic file (type png)
+<use images/vaadin_ui_ingresso_std.png>
+Package pdftex.def Info: images/vaadin_ui_ingresso_std.png  used on input line 
+56.
+(pdftex.def)             Requested size: 386.96027pt x 259.68178pt.
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+<images/vaadin_ui_neg.png, id=348, 605.26125pt x 431.6125pt>
 File: images/vaadin_ui_neg.png Graphic file (type png)
 <use images/vaadin_ui_neg.png>
-Package pdftex.def Info: images/vaadin_ui_neg.png  used on input line 58.
+Package pdftex.def Info: images/vaadin_ui_neg.png  used on input line 60.
 (pdftex.def)             Requested size: 386.96027pt x 275.94127pt.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-<images/vaadin_ui_tarif.png, id=352, 606.265pt x 445.665pt>
+<images/vaadin_ui_tarif.png, id=349, 606.265pt x 445.665pt>
 File: images/vaadin_ui_tarif.png Graphic file (type png)
 <use images/vaadin_ui_tarif.png>
-Package pdftex.def Info: images/vaadin_ui_tarif.png  used on input line 62.
+Package pdftex.def Info: images/vaadin_ui_tarif.png  used on input line 64.
 (pdftex.def)             Requested size: 386.96027pt x 284.45619pt.
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[12 <./images/atgt_scenario_list.png> <./images/vaadin_ui_idle.png>]
-<images/selenium_test_green.png, id=361, 395.4775pt x 284.06125pt>
+<images/selenium_test_green.png, id=350, 395.4775pt x 284.06125pt>
 File: images/selenium_test_green.png Graphic file (type png)
 <use images/selenium_test_green.png>
-Package pdftex.def Info: images/selenium_test_green.png  used on input line 76.
+Package pdftex.def Info: images/selenium_test_green.png  used on input line 79.
 
 (pdftex.def)             Requested size: 386.96027pt x 277.94466pt.
 
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[13 <./images/vaadin_ui_ingresso_std.png> <./images/vaadin_ui_neg.png>])
-(./sections/05_testing.tex
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[14 <./images/vaadin_ui_tarif.png> <./images/selenium_test_green.png>]
-Overfull \hbox (11.04314pt too wide) in paragraph at lines 23--25
-\T1/cmr/bx/n/10.95 Decisione 1 \T1/cmr/m/n/10.95 (ramo STD/ABBONATO): $\OML/cmm
-/m/it/10.95 D[] \OT1/cmr/m/n/10.95 = ([][][] \OMS/cmsy/m/n/10.95 _ [][][]\OT1/c
-mr/m/n/10.95 ) \OMS/cmsy/m/n/10.95 ^ [][]\OT1/cmr/m/n/10.95 0$\T1/cmr/m/n/10.95
- . 
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 69--70
-[]|\T1/cmr/m/n/10.95 POSTO_-STD
- []
-
-
-Overfull \hbox (6.88351pt too wide) in paragraph at lines 70--70
-[]|\T1/cmr/m/n/10.95 ABBONATO| 
- []
-
-
-Overfull \hbox (6.88351pt too wide) in paragraph at lines 71--71
-[]|\T1/cmr/m/n/10.95 ABBONATO| 
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[15]
-<images/junit_run_all_green.png, id=393, 480.79625pt x 284.06125pt>
-File: images/junit_run_all_green.png Graphic file (type png)
-<use images/junit_run_all_green.png>
-Package pdftex.def Info: images/junit_run_all_green.png  used on input line 102
-.
-(pdftex.def)             Requested size: 386.96027pt x 228.62762pt.
-
-Overfull \hbox (42.01553pt too wide) in paragraph at lines 104--122
-[]\T1/cmr/m/n/10.95 La copertura è stata misurata con JaCoCo (\T1/cmtt/m/n/10.9
-5 mvn verify\T1/cmr/m/n/10.95 , report in \T1/cmtt/m/n/10.95 target/site/jacoco
-/index.html\T1/cmr/m/n/10.95 ).
- []
-
-
-Overfull \hbox (0.93013pt too wide) in paragraph at lines 104--122
-\T1/cmr/m/n/10.95 veri buchi di test e sono stati chiusi aggiungendo due test m
-irati (\T1/cmtt/m/n/10.95 uscRestaInUscFinoAlTransito\T1/cmr/m/n/10.95 ,
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[16 <./images/junit_run_all_green.png>]
-<images/jacoco_coverage_report.png, id=411, 1445.4pt x 225.84375pt>
-File: images/jacoco_coverage_report.png Graphic file (type png)
-<use images/jacoco_coverage_report.png>
-Package pdftex.def Info: images/jacoco_coverage_report.png  used on input line 
-124.
-(pdftex.def)             Requested size: 386.96027pt x 60.4617pt.
-<images/jacoco_detail_parcheggio.png, id=412, 1445.4pt x 333.245pt>
-File: images/jacoco_detail_parcheggio.png Graphic file (type png)
-<use images/jacoco_detail_parcheggio.png>
-Package pdftex.def Info: images/jacoco_detail_parcheggio.png  used on input lin
-e 128.
-(pdftex.def)             Requested size: 386.96027pt x 89.2146pt.
-<images/jacoco_detail_fsm.png, id=413, 1445.4pt x 505.89pt>
-File: images/jacoco_detail_fsm.png Graphic file (type png)
-<use images/jacoco_detail_fsm.png>
-Package pdftex.def Info: images/jacoco_detail_fsm.png  used on input line 133.
-(pdftex.def)             Requested size: 386.96027pt x 135.43423pt.
-) (./sections/03_jml.tex
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[17 <./images/jacoco_coverage_report.png> <./images/jacoco_detail_parcheggio.pn
-g> <./images/jacoco_detail_fsm.png>]
-Overfull \hbox (6.8732pt too wide) in paragraph at lines 53--57
-[]\T1/cmr/m/n/10.95 il costruttore con parametri (usato nei test combinatori e 
-MC/DC per costruire configurazioni
- []
-
-
-Overfull \hbox (72.24103pt too wide) in paragraph at lines 57--60
-[]\T1/cmr/m/n/10.95 la violazione della precondizione è anche gestita difensiva
-mente a runtime con \T1/cmtt/m/n/10.95 IllegalArgumentException\T1/cmr/m/n/10.9
-5 ,
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[18]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[19]
-<images/openjml_esc_output.png, id=477, 943.525pt x 619.31375pt>
-File: images/openjml_esc_output.png Graphic file (type png)
-<use images/openjml_esc_output.png>
-Package pdftex.def Info: images/openjml_esc_output.png  used on input line 169.
-
-(pdftex.def)             Requested size: 386.96027pt x 253.99588pt.
-) (./sections/06_analisi_statica.tex
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[20 <./images/openjml_esc_output.png>]
-Overfull \hbox (1.44183pt too wide) in paragraph at lines 20--21
-[]\T1/cmr/m/n/10.95 Le eccezioni di precondizione (\T1/cmtt/m/n/10.95 IllegalAr
-gumentException\T1/cmr/m/n/10.95 , \T1/cmtt/m/n/10.95 IllegalStateException\T1/
-cmr/m/n/10.95 ) sono
- []
-
-
-Overfull \hbox (9.81425pt too wide) in paragraph at lines 27--32
-[]\T1/cmr/bx/n/10.95 Validazione mancante di \T1/cmtt/m/n/10.95 utenteRilevato=
-=null \T1/cmr/bx/n/10.95 in CHK_-OUT\T1/cmr/m/n/10.95 : il confronto restituisc
-e
- []
-
-
-Overfull \hbox (3.4472pt too wide) in paragraph at lines 27--32
-\T1/cmr/m/n/10.95 silenziosamente \T1/cmtt/m/n/10.95 false\T1/cmr/m/n/10.95 , p
-ortando il sistema in USC come se l'utente non fosse STD. \T1/cmr/m/it/10.95 Ge
-stione\T1/cmr/m/n/10.95 :
- []
-
-
-Overfull \hbox (20.01709pt too wide) in paragraph at lines 44--48
-[]\T1/cmr/bx/n/10.95 Scostamento temporale nel decremento dei contatori rispett
-o all'ASM\T1/cmr/m/n/10.95 : \T1/cmtt/m/n/10.95 assegnaPosto
- []
-
-
-Overfull \hbox (19.06125pt too wide) in paragraph at lines 44--48
-\T1/cmr/m/n/10.95 differenza non osservabile in alcuno scenario di test; scelta
- la versione più semplice, documentata
- []
-
-
-Overfull \hbox (1.93575pt too wide) in paragraph at lines 54--65
-[]\T1/cmr/bx/n/10.95 Memoria a slot singolo per \T1/cmtt/m/n/10.95 posto_-asseg
-nato \T1/cmr/bx/n/10.95 ^^V difetto presente anche nel modello
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller to compensate:
-
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[21]) (./sections/07_ci.tex
-Overfull \hbox (23.39603pt too wide) in paragraph at lines 77--1
-\T1/cmr/m/n/10.95 documentali via Javadoc), ma ha individuato un \T1/cmr/bx/n/1
-0.95 difetto latente nella specifica stessa \T1/cmr/m/n/10.95 (osservazione
- []
-
-(/usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
-File: lstlang1.sty 2020/03/24 1.8d listings language file
-)
-(/usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
-File: lstlang1.sty 2020/03/24 1.8d listings language file
-)
-
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-
-LaTeX Warning: `!h' float specifier changed to `!ht'.
-
-) (./sections/08_conclusioni.tex
+) (./sections/05_testing.tex
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 13.59999pt, for example:
@@ -1460,57 +1247,11 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 (fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
 
-[22])
+[13]
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 13.59999pt, for example:
 (fancyhdr)                \setlength{\headheight}{13.59999pt}.
 (fancyhdr)                You might also make \topmargin smaller to compensate:
 
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[23] (./main.aux)
-Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 195D33C3E1FCD1C16634006F0CC2D53F;7326.
- ) 
-Here is how much of TeX's memory you used:
- 26110 strings out of 480247
- 477009 string characters out of 5896152
- 1317846 words of memory out of 5000000
- 43360 multiletter control sequences out of 15000+600000
- 488394 words of font info for 74 fonts, out of 8000000 for 9000
- 14 hyphenation exceptions out of 8191
- 84i,12n,89p,425b,1273s stack positions out of 5000i,500n,10000p,200000b,80000s
- </sessions/beautiful-clever-lovelace/.texlive2021/texmf-var/fonts/pk/ljfour/
-jknappen/ec/ectt1000.600pk> </sessions/beautiful-clever-lovelace/.texlive2021/t
-exmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1000.600pk> </sessions/beautiful-cleve
-r-lovelace/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1095.600pk> <
-/sessions/beautiful-clever-lovelace/.texlive2021/texmf-var/fonts/pk/ljfour/jkna
-ppen/ec/ectt0900.600pk> </sessions/beautiful-clever-lovelace/.texlive2021/texmf
--var/fonts/pk/ljfour/jknappen/ec/ecrm0600.600pk> </sessions/beautiful-clever-lo
-velace/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1200.600pk> </ses
-sions/beautiful-clever-lovelace/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen
-/ec/ecrm0800.600pk> </sessions/beautiful-clever-lovelace/.texlive2021/texmf-var
-/fonts/pk/ljfour/jknappen/ec/ecrm1000.600pk> </sessions/beautiful-clever-lovela
-ce/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecti1095.600pk> </session
-s/beautiful-clever-lovelace/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/
-ecbx1200.600pk> </sessions/beautiful-clever-lovelace/.texlive2021/texmf-var/fon
-ts/pk/ljfour/jknappen/ec/ectt1095.600pk> </sessions/beautiful-clever-lovelace/.
-texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1095.600pk> </sessions/be
-autiful-clever-lovelace/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx
-1095.600pk> </sessions/beautiful-clever-lovelace/.texlive2021/texmf-var/fonts/p
-k/ljfour/jknappen/ec/ecbx1440.600pk> </sessions/beautiful-clever-lovelace/.texl
-ive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.600pk> </sessions/beauti
-ful-clever-lovelace/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1728
-.600pk></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
-></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/
-share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/te
-xlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/
-texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb>
-Output written on main.pdf (23 pages, 4939156 bytes).
-PDF statistics:
- 1258 PDF objects out of 1440 (max. 8388607)
- 579 compressed objects within 6 object streams
- 222 named destinations out of 1000 (max. 500000)
- 433 words of extra memory for PDF output out of 10000 (max. 10000000)
-
+(fancyhdr)                \addtolength{\top

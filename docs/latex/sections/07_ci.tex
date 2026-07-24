@@ -1,8 +1,11 @@
 \section{Continuous Integration}
 
-Il workflow \texttt{.github/workflows/ci.yml} esegue la build Maven completa
-(escludendo i test taggati \texttt{ui}) ad ogni push/PR e carica il report JaCoCo
-come artifact:
+Vediamo infine come ho impostato la continuous integration sul progetto. L'idea è che,
+ogni volta che si fa un push o si apre una pull request, i test partano da soli, così se
+qualcuno rompe qualcosa ce ne accorgiamo subito. Il tutto sta nel workflow
+\texttt{.github/workflows/ci.yml}: fa la build Maven completa (lasciando fuori i test
+taggati \texttt{ui}, che hanno bisogno di Chrome e dell'app avviata) e alla fine salva
+il report JaCoCo come artifact.
 
 \begin{lstlisting}[language=bash, caption={.github/workflows/ci.yml (estratto)}]
 on:

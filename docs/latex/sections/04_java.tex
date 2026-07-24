@@ -2,9 +2,9 @@
 
 \subsection{Struttura del progetto Maven}
 
-Il progetto Maven (\texttt{java/}) usa Java 17, Spring Boot + Vaadin 24 per la UI,
-JUnit 5 / Mockito per i test, JaCoCo per la copertura e PIT per il mutation testing.
-Il package \texttt{it.tvsw.smartparking.core} contiene:
+Il progetto Maven (\texttt{java/}) gira su Java 17 e usa Spring Boot con Vaadin 24 per
+la UI, JUnit 5 e Mockito per i test e JaCoCo per la copertura. Il cuore del programma sta
+nel package \texttt{it.tvsw.smartparking.core}, che contiene:
 
 \begin{itemize}
     \item \texttt{StatoSistema}, \texttt{TipoUtente}, \texttt{TipoPosto}: enum identici ai domini ASM;
@@ -31,18 +31,20 @@ public void step(SensorInput input) {
 }
 \end{lstlisting}
 
-\emph{Nota di design}: a differenza del modello ASM (che decrementa i contatori solo
-al transito effettivo in INGR), la classe \texttt{Parcheggio} decide e decrementa in
-un unico passo (\texttt{assegnaPosto}, chiamato da \texttt{gestisciVer}). La
-differenza non è osservabile negli scenari di test del progetto ed è stata scelta
-per mantenere il codice più semplice (si veda l'osservazione dedicata in
-Sezione~\ref{sec:analisi-statica}).
+Una nota sul design: nel modello ASM il contatore viene decrementato solo al transito
+vero e proprio in INGR, mentre qui la classe \texttt{Parcheggio} decide e decrementa
+tutto in un colpo solo, dentro \texttt{assegnaPosto} (che viene chiamato da
+\texttt{gestisciVer}). Negli scenari di test del progetto questa differenza non si vede,
+e l'ho scelta apposta per tenere il codice più semplice; ne riparlo meglio
+nell'osservazione dedicata in Sezione~\ref{sec:analisi-statica}.
 
 \subsection{Interfaccia utente (Vaadin)}
 
-La vista \texttt{MainView} mostra lo stato corrente e i posti liberi, con bottoni che
-simulano i sensori: ``Arriva auto STD/DISABILE/ABBONATO'', ``Transito'',
-``Pagamento'', ``Auto va via'', ``Auto in uscita''.
+Per la UI ho creato la vista \texttt{MainView}, che mostra lo stato corrente e i posti
+ancora liberi. I sensori li ho simulati con dei bottoni: ``Arriva auto
+STD/DISABILE/ABBONATO'', ``Transito'', ``Pagamento'', ``Auto va via'' e ``Auto in
+uscita''. In pratica cliccando i bottoni si fa avanzare la macchina a stati come se
+arrivassero gli input dai sensori veri.
 
 \screenshot{vaadin_ui_idle}{UI Vaadin -- stato iniziale}{%
 Lanciare \texttt{cd java \&\& mvn spring-boot:run}, aprire
@@ -63,13 +65,14 @@ mostrare TARIF (in attesa di pagamento) prima di cliccare ``Pagamento''.}
 
 \subsection{Test end-to-end con Selenium}
 
-La UI è verificata anche con un test end-to-end Selenium
-(\texttt{UISeleniumTest}, tag JUnit ``ui'', escluso dalla build standard perché
-richiede l'applicazione avviata e Chrome): il test apre la pagina con ChromeDriver
-headless, attende il rendering client-side di Vaadin con \texttt{WebDriverWait},
-clicca ``Arriva auto STD'' e verifica che lo stato mostrato diventi INGR/NEG.
-Esecuzione: \texttt{mvn test -Dtest.groups=ui -Dtest.excludedGroups=} (oppure
-direttamente da Eclipse come JUnit test).
+La UI l'ho controllata anche con un test end-to-end fatto in Selenium
+(\texttt{UISeleniumTest}). L'ho taggato ``ui'' e l'ho escluso dalla build normale, perché
+per girare ha bisogno dell'applicazione già avviata e di Chrome. Quello che fa è aprire
+la pagina con ChromeDriver in modalità headless, aspettare che Vaadin finisca di
+renderizzare lato client (con \texttt{WebDriverWait}), cliccare ``Arriva auto STD'' e
+controllare che lo stato mostrato diventi INGR o NEG. Per lanciarlo basta
+\texttt{mvn test -Dtest.groups=ui -Dtest.excludedGroups=}, oppure eseguirlo da Eclipse
+come un normale test JUnit.
 
 \screenshot{selenium_test_green}{Test Selenium end-to-end superato}{%
 Vista JUnit di Eclipse (o terminale Maven) con \texttt{UISeleniumTest} verde,

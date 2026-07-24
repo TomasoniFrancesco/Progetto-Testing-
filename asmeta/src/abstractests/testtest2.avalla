@@ -1,0 +1,55 @@
+scenario testtest2
+
+load ./../SmartParking.asm
+
+//// test name test@test2
+//// generated for (test goal): test2: NULL
+check stato = IDLE;
+set sens_in := true;
+set pagamento_ok := false;
+step
+check stato = CHK_IN;
+step
+check stato = VER;
+check posti_std = 1;
+set utente_rilevato := ABBONATO;
+step
+check stato = INGR;
+check posti_std = 1;
+check posto_assegnato = POSTO_STD;
+set transito_ok := true;
+step
+check posti_std = 0;
+check stato = IDLE;
+check posto_assegnato = POSTO_STD;
+set sens_in := false;
+set sens_out := false;
+step
+check posto_assegnato = POSTO_STD;
+check posti_std = 0;
+check stato = IDLE;
+set sens_in := false;
+set sens_out := true;
+step
+check posti_std = 0;
+check stato = CHK_OUT;
+check posto_assegnato = POSTO_STD;
+set utente_rilevato := DISABILE;
+step
+check stato = USC;
+check posto_assegnato = POSTO_STD;
+check posti_std = 0;
+set transito_ok := true;
+step
+check posti_std = 1;
+check posto_assegnato = NESSUNO;
+check stato = IDLE;
+set sens_in := true;
+step
+check posti_std = 1;
+check stato = CHK_IN;
+check posto_assegnato = NESSUNO;
+step
+check posti_std = 1;
+check posto_assegnato = NESSUNO;
+check stato = VER;

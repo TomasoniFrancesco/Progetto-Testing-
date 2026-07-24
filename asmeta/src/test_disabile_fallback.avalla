@@ -1,0 +1,54 @@
+scenario test_disabile_fallback
+
+load SmartParking.asm
+
+// Obiettivo: verificare il fallback DISABILE -> POSTO_STD quando i posti disabili sono esauriti.
+// L'init del modello e' fisso (posti_dis = 1): per esaurire i posti disabili facciamo
+// entrare prima un DISABILE (che occupa l'unico posto disabile), poi un secondo DISABILE
+// che deve ricevere POSTO_STD.
+
+check stato = IDLE;
+check posti_std = 1;
+check posti_dis = 1;
+
+// --- 1. PRIMO DISABILE: occupa il posto disabile ---
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+set sens_in := false;
+set utente_rilevato := DISABILE;
+step
+check stato = VER;
+
+step
+check stato = INGR;
+check posto_assegnato = POSTO_DIS;
+
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_dis = 0; // posto disabile esaurito
+check posti_std = 1; // lo standard non e' toccato
+
+// --- 2. SECONDO DISABILE: posti_dis = 0 -> deve scattare il FALLBACK su POSTO_STD ---
+set transito_ok := false;
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+set sens_in := false;
+set utente_rilevato := DISABILE;
+step
+check stato = VER;
+
+// posti_dis = 0 -> ramo else -> posti_std > 0 -> fallback su POSTO_STD
+step
+check stato = INGR;
+check posto_assegnato = POSTO_STD; // FALLBACK VERIFICATO
+
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_std = 0; // il fallback ha consumato il posto standard
+check posti_dis = 0; // invariato
