@@ -82,11 +82,9 @@ public class Parcheggio {
         if (utente == null) {
             throw new IllegalArgumentException("utente non puo' essere null");
         }
+        // REGRESSIONE INTRODOTTA DI PROPOSITO per dimostrare che la CI la intercetta.
+        // Non fare merge di questo branch su main.
         if (utente == TipoUtente.STD || utente == TipoUtente.ABBONATO) {
-            if (postiStd > 0) {
-                postiStd = postiStd - 1;
-                return TipoPosto.POSTO_STD;
-            }
             return TipoPosto.NESSUNO;
         }
         // utente == DISABILE: priorita' al posto disabile, poi fallback su standard
