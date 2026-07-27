@@ -8,7 +8,7 @@ package it.tvsw.smartparking.core;
  * decremento/incremento dei contatori).
  *
  * <p>Classe senza dipendenze esterne, con contratti JML pensati per essere
- * verificati staticamente (ESC) con OpenJML: vedi {@code docs/03_jml.md}.</p>
+ * verificati staticamente (ESC) con OpenJML: vedi la Sezione 5 di {@code docs/latex/main.pdf}.</p>
  *
  * <p>Semplificazione rispetto al modello ASM: qui l'assegnazione del posto
  * ({@link #assegnaPosto(TipoUtente)}) decide E decrementa il contatore in un

@@ -28,15 +28,24 @@ jobs:
           path: java/target/site/jacoco/
 \end{lstlisting}
 
-\screenshot{ci_success}{Esecuzione CI riuscita}{%
-Dopo aver creato il repository GitHub e fatto il primo push, andare sulla tab
-\textbf{Actions} del repository. Screenshot di un run completato con successo
-(spunta verde), con tutti gli step espansi visibili (checkout, setup JDK, build+test).}
+\screenshot{ci_success}{Esecuzione CI riuscita sul branch \texttt{main}}{%
+Run della pipeline completato con successo sulla tab \textbf{Actions} del
+repository: build Maven e test del package \texttt{core} tutti verdi.}
 
-\screenshot{ci_failure}{Esecuzione CI fallita (dimostrazione)}{%
-Per dimostrare che la CI intercetta davvero le regressioni: modificare
-temporaneamente un metodo del core (es. far restituire sempre \texttt{TipoPosto.NESSUNO}
-da \texttt{assegnaPosto}), fare commit/push su un branch di prova, e catturare lo
-screenshot del run \textbf{fallito} in rosso con il log dei test JUnit falliti
-espanso. Poi ripristinare il codice corretto con un nuovo commit e, se vuoi, uno
-screenshot finale che torna verde.}
+Avere la pipeline verde però non dimostra granché di per sé: dimostra che i test
+passano, non che la CI se ne accorgerebbe se smettessero di passare. Per verificare
+che il meccanismo funzionasse davvero ho quindi introdotto una regressione di
+proposito: su un branch dedicato (\texttt{ci\_failure}, che ho lasciato apposta sul
+repository come evidenza) ho modificato \texttt{assegnaPosto} facendogli restituire
+sempre \texttt{TipoPosto.NESSUNO}. Al push la pipeline è andata in rosso, con i test
+di \texttt{ParcheggioTest} e \texttt{SmartParkingFSMTest} falliti sugli assert
+sull'esito dell'assegnazione. Il branch \texttt{main} è rimasto intatto.
+
+\screenshot{ci_failure}{Esecuzione CI fallita sul branch \texttt{ci\_failure} (regressione introdotta di proposito)}{%
+Run della pipeline fallito dopo aver forzato \texttt{assegnaPosto} a restituire
+sempre \texttt{TipoPosto.NESSUNO}: la CI intercetta la regressione e blocca la build.}
+
+Questo è, secondo me, il vero valore della continuous integration in un progetto come
+questo: non tanto far girare i test (posso farlo anche in locale), quanto avere la
+garanzia che non me ne possa dimenticare, e che ogni commit resti legato a una prova
+oggettiva del fatto che il codice funzionava in quel momento.

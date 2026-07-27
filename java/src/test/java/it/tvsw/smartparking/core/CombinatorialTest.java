@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * postiDis {0, &gt;0} rappresentato come {0, 1} (2 valori).
  *
  * <p>La tabella pairwise a 6 righe (che copre tutte le coppie di valori dei
- * 3 parametri) e' documentata in {@code docs/04_java_testing.md}.
+ * 3 parametri) e' documentata nella Sezione 4 di {@code docs/latex/main.pdf}.
  */
 class CombinatorialTest {
 

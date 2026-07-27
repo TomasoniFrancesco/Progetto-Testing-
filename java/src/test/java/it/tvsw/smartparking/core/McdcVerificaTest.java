@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * <br>Condizioni atomiche: C1 = (postiDis > 0), C2 = (postiStd > 0)
  *
  * <p>La tabella dei casi di test e delle coppie indipendenti e' documentata
- * in dettaglio in {@code docs/04_java_testing.md}.
+ * in dettaglio nella Sezione 4 di {@code docs/latex/main.pdf}.
  */
 class McdcVerificaTest {
 

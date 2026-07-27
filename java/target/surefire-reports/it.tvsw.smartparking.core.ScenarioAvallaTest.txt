@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: it.tvsw.smartparking.core.ScenarioAvallaTest
--------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.037 s -- in it.tvsw.smartparking.core.ScenarioAvallaTest

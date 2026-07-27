@@ -1,1 +1,41 @@
+# Build output
+target/
+bin/
+*.class
+
+# Vaadin: risorse frontend generate automaticamente dal build
+java/src/main/frontend/generated/
+node_modules/
+package.json
+package-lock.json
+pnpm-lock.yaml
+pnpmfile.js
+tsconfig.json
+types.d.ts
+vite.config.ts
+vite.generated.ts
+
+# LaTeX: file ausiliari di compilazione (main.pdf invece va versionato)
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# OS
+.DS_Store
 **/.DS_Store
+Thumbs.db
+
+# IDE (VS Code / IntelliJ) - Eclipse .project/.classpath NON vanno ignorati
+.vscode/
+.idea/
+*.iml
+
+# Ambienti virtuali Python (tool locali)
+.venv/
+
+# OpenJML / tool locali scaricati dall'utente
+/openjml/

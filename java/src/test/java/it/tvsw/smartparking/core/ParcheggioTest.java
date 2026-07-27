@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Test unitari della classe {@link Parcheggio}: costruttori, assegnazione,
  * rilascio e violazione delle precondizioni (corrispondenti alle clausole
- * {@code requires} JML documentate in docs/03_jml.md).
+ * {@code requires} JML documentate nella Sezione 5 di docs/latex/main.pdf).
  */
 class ParcheggioTest {
 
