@@ -3,34 +3,35 @@
 
 \subsection{Struttura dei test}
 
-Ho diviso i test in più classi, una per ogni aspetto che volevo coprire, così è più
-facile capire cosa controlla cosa. Nella tabella qui sotto ho messo l'elenco con,
-accanto, quello che ciascuna classe va a verificare.
+Ho diviso i test in più classi, una per ogni cosa che volevo coprire, invece di
+buttare tutto insieme. Così se un test si rompe si capisce subito di che tipo di
+problema si tratta. Le classi sono queste:
 
 \begin{longtable}{@{}p{4.3cm}p{8.7cm}@{}}
 \toprule
-\textbf{Classe} & \textbf{Copre} \\
+\textbf{Classe} & \textbf{Cosa copre} \\
 \midrule
 \endhead
-\texttt{ParcheggioTest} & Costruttori, precondizioni violate, tutti i rami di \texttt{assegnaPosto}/\texttt{liberaPosto}, test parametrico CSV. \\
-\texttt{SmartParkingFSMTest} & Tutti gli 8 stati e le transizioni, fallback disabile, parcheggio pieno, self-loop NEG/INGR/TARIF. \\
-\texttt{McdcVerificaTest} & Copertura MC/DC delle due decisioni composte di \texttt{assegnaPosto} (Tabella~\ref{tab:mcdc1} e~\ref{tab:mcdc2}). \\
-\texttt{DisplayMockTest} & Notifiche a \texttt{Display} verificate con Mockito. \\
-\texttt{ScenarioAvallaTest} & Traduzione fedele di \texttt{test\_pieno.avalla} in JUnit (Model Based Testing). \\
-\texttt{CombinatorialTest} & Tabella pairwise a 6 righe (Tabella~\ref{tab:pairwise}). \\
-\texttt{UISeleniumTest} & Smoke test della UI (tag \texttt{ui}, escluso dalla build standard). \\
+\texttt{ParcheggioTest} & Costruttori, precondizioni violate, tutti i rami di \texttt{assegnaPosto} e \texttt{liberaPosto}, più un test parametrico con CSV. \\
+\texttt{SmartParkingFSMTest} & Tutti gli 8 stati e le transizioni, il fallback del disabile, il parcheggio pieno, i self-loop di NEG, INGR e TARIF. \\
+\texttt{McdcVerificaTest} & Copertura MC/DC delle due decisioni composte di \texttt{assegnaPosto}. \\
+\texttt{DisplayMockTest} & Le notifiche al \texttt{Display}, controllate con Mockito. \\
+\texttt{ScenarioAvallaTest} & Traduzione di \texttt{test\_pieno.avalla} in JUnit (model based testing). \\
+\texttt{CombinatorialTest} & La tabella pairwise a 6 righe. \\
+\texttt{UISeleniumTest} & Smoke test della UI, taggato \texttt{ui} e fuori dalla build normale. \\
 \bottomrule
 \end{longtable}
 
 \subsection{MC/DC}
 
-Dentro \texttt{assegnaPosto} ci sono due decisioni composte, cioè con più condizioni
-messe in and/or, e per queste ho voluto una copertura MC/DC vera e propria: per ogni
-condizione serve una coppia di casi di test in cui, cambiando solo quella condizione,
-cambia anche il risultato della decisione. Vediamole una alla volta.
+Dentro \texttt{assegnaPosto} ci sono due decisioni composte, cioè con più di una
+condizione legata da and/or, e su quelle ho fatto la copertura MC/DC. La regola è che
+per ogni condizione serve una coppia di casi di test in cui cambia solo quella
+condizione e cambia anche il risultato della decisione. Vediamole una alla volta.
 
-La prima decisione è quella del ramo STD/ABBONATO: $D_1 = (\text{utente}{=}\text{STD}
-\lor \text{utente}{=}\text{ABBONATO}) \land \text{postiStd}{>}0$.
+La prima è quella del ramo STD/ABBONATO: $D_1 = (\text{utente}{=}\text{STD}
+\lor \text{utente}{=}\text{ABBONATO}) \land \text{postiStd}{>}0$. Le tre condizioni le
+chiamo A, B e C nell'ordine in cui compaiono.
 
 \begin{longtable}{@{}p{1cm}p{0.6cm}p{0.6cm}p{0.6cm}p{0.6cm}p{2.6cm}p{5.5cm}@{}}
 \toprule
@@ -45,6 +46,11 @@ TC4 & F & T & T & T & POSTO\_STD & isola B (vs TC3) \\
 \caption{MC/DC -- Decisione 1.}
 \label{tab:mcdc1}
 \end{longtable}
+
+Leggendola: TC1 è il caso base, un utente STD con un posto libero. TC2 cambia solo C
+(niente posti) e la decisione diventa falsa, quindi la coppia TC1--TC2 isola C. TC3
+cambia solo A rispetto a TC1 ed è la coppia per A. TC4 confrontato con TC3 cambia solo B
+ed è la coppia per B. Con quattro casi sono coperte tutte e tre le condizioni.
 
 La seconda decisione è quella del ramo DISABILE, cioè il fallback, con
 $C_1{=}\text{postiDis}{>}0$ e $C_2{=}\text{postiStd}{>}0$.
@@ -62,14 +68,16 @@ TC7 & F & F & NESSUNO & isola $C_2$ (vs TC6) \\
 \label{tab:mcdc2}
 \end{longtable}
 
+Qui in TC5 il valore di $C_2$ non conta, perché se c'è il posto disabile il secondo if
+non viene nemmeno valutato: per questo ho messo un trattino.
+
 \subsection{Combinatorial testing (pairwise)}
 
-L'assegnazione del posto dipende da tre parametri: il tipo di utente
-(\texttt{tipoUtente} $\in$ \{STD, DISABILE, ABBONATO\}), i posti standard liberi
-(\texttt{postiStd} $\in \{0, 1\}$) e quelli disabili liberi (\texttt{postiDis}
-$\in \{0, 1\}$). Provare tutte le combinazioni sarebbe possibile ma inutile: mi basta
-coprire tutte le \emph{coppie} di valori, ed è quello che fa la tabella pairwise qui
-sotto, che con sole 6 righe le copre tutte.
+L'assegnazione del posto dipende da tre parametri: il tipo di utente (tre valori) e i due
+contatori, che nel modello valgono 0 oppure 1. Tutte le combinazioni sarebbero
+$3 \times 2 \times 2 = 12$, che sono poche e si potrebbero anche fare tutte, ma il punto
+dell'esercizio era usare il pairwise. Basta quindi coprire tutte le \emph{coppie} di
+valori, e per farlo bastano 6 righe invece di 12.
 
 \begin{longtable}{@{}p{0.6cm}p{2cm}p{1.6cm}p{1.6cm}p{3.5cm}@{}}
 \toprule
@@ -87,14 +95,16 @@ sotto, che con sole 6 righe le copre tutte.
 \label{tab:pairwise}
 \end{longtable}
 
+Le righe 3 e 5 sono quelle che mi piacciono di più, perché messe vicine fanno vedere la
+regola del posto riservato: stessa configurazione di contatori, ma il disabile entra e
+l'abbonato no.
+
 \subsection{Mockito}
 
-La FSM, a ogni cambio di stato, manda un messaggio a un oggetto \texttt{Display}. Per
-controllare che questi messaggi partano davvero, senza dover tirare in ballo la UI vera,
-ho usato Mockito: creo un finto \texttt{Display} e poi con \texttt{verify} controllo che
-il metodo \texttt{mostra} venga chiamato con il testo giusto. Nell'esempio qui sotto
-riempio il parcheggio e verifico che, al terzo ingresso, il display riceva davvero
-``Accesso negato''.
+La FSM, ogni volta che cambia stato, manda un messaggio a un oggetto \texttt{Display}.
+Per controllare che questi messaggi partano davvero senza tirare in ballo la UI, ho usato
+Mockito: mi creo un \texttt{Display} finto e poi con \texttt{verify} controllo che il
+metodo \texttt{mostra} sia stato chiamato con il testo giusto.
 
 \begin{lstlisting}[language=Java, caption={Verifica delle notifiche con Mockito}]
 @Test
@@ -107,52 +117,61 @@ void notificaAccessoNegatoQuandoParcheggioPieno() {
 }
 \end{lstlisting}
 
+In questo test parto da un parcheggio già pieno, faccio arrivare un'auto e controllo che
+al display arrivi davvero ``Accesso negato''.
+
 \subsection{Model Based Testing}
 
-L'idea del model based testing è prendere uno scenario già scritto sul modello astratto
-e tradurlo in un test sul codice vero. Ho preso lo scenario \texttt{test\_pieno.avalla} e
-l'ho riportato passo passo in \texttt{ScenarioAvallaTest}: ogni blocco
-\texttt{set}/\texttt{step}/\texttt{check} dell'avalla diventa la corrispondente riga
-JUnit, e ho lasciato un commento accanto a ciascuna per richiamare la riga originale
-dello scenario.
+Qui l'idea è prendere uno scenario già scritto sul modello astratto e riportarlo tale e
+quale sul codice vero. Ho preso \texttt{test\_pieno.avalla} e l'ho tradotto passo passo in
+\texttt{ScenarioAvallaTest}: ogni \texttt{set} dell'avalla diventa la preparazione
+dell'input, ogni \texttt{step} una chiamata a \texttt{step()} e ogni \texttt{check} un
+assert. Accanto a ciascuna riga ho lasciato un commento con la riga originale dello
+scenario, così il confronto tra i due file si fa senza doverli tenere aperti tutti e due.
 
 \subsection{Esecuzione e copertura}
 
 \screenshot{junit_run_all_green}{Esecuzione di tutta la suite JUnit}{%
-In Eclipse (o IntelliJ), tasto destro sulla cartella \texttt{src/test/java} $\to$
-\textbf{Run As $\to$ JUnit Test}, oppure da terminale \texttt{mvn test}. Screenshot
-della vista JUnit con tutti i test verdi e il conteggio totale (es. ``Runs: N/N,
-Errors: 0, Failures: 0'').}
+Vista JUnit con tutti i test verdi e il conteggio totale.}
 
-La copertura l'ho misurata con JaCoCo, lanciando \texttt{mvn verify} e guardando il
-report in \texttt{target/site/jacoco/index.html}. Dal conteggio ho tolto la UI Vaadin
-(che testo end-to-end con Selenium e che JaCoCo non riesce a misurare) e la classe di
-avvio di Spring Boot, che sono solo 3 righe di boilerplate; l'esclusione è scritta nel
-\texttt{pom.xml}. Alla prima misurazione il package \texttt{core} stava al 98\% di
-instruction e al 95\% di branch. La classe \texttt{Parcheggio} era già al 100\%/100\%
-(coerente con la verifica ESC dei contratti, \S\ref{sec:jml-ref}), mentre in
-\texttt{SmartParkingFSM} restavano scoperti 3 branch: il self-loop di
-\texttt{gestisciUsc} (\texttt{transito\_ok} falso in USC), il ramo
-\texttt{display == null} di \texttt{cambiaStato} e il \texttt{default} dello switch di
-\texttt{step}. I primi due erano veri buchi di test, che ho chiuso aggiungendo due
-test mirati (\texttt{uscRestaInUscFinoAlTransito}, \texttt{fsmFunzionaSenzaDisplay}).
-Il terzo invece non è raggiungibile: lo switch gestisce tutti e 8 i valori dell'enum
-\texttt{StatoSistema}, per cui il \texttt{default} (difensivo, lancia
-\texttt{IllegalStateException}) non può mai essere eseguito. È l'analogo Java dei rami
-infattibili già osservati con AsmetaV sul modello (\S\ref{sec:asmetav-vc}). Dopo aver
-aggiunto i due test, quel \texttt{default} resta l'unico branch non coperto del
-package.
+Tutti i test del package \texttt{core} passano: sono 59, più quello Selenium che sta
+fuori dalla build normale.
+
+La copertura l'ho misurata con JaCoCo lanciando \texttt{mvn verify} e guardando il report
+in \texttt{target/site/jacoco/index.html}. Dal conteggio ho tolto due cose: la UI Vaadin,
+che provo end-to-end con Selenium e che JaCoCo non riesce a misurare, e la classe di
+avvio di Spring Boot, che sono tre righe di boilerplate. L'esclusione è scritta nel
+\texttt{pom.xml}.
+
+Alla prima misurazione il package \texttt{core} stava al 98\% di instruction e al 95\% di
+branch. \texttt{Parcheggio} era già al 100\% su tutte e due, il che tornava con il fatto
+che i suoi contratti erano già stati dimostrati con ESC. In \texttt{SmartParkingFSM}
+invece restavano fuori tre branch, e vale la pena guardarli uno per uno perché non sono
+tutti uguali:
+
+\begin{itemize}
+\item il self-loop di \texttt{gestisciUsc}, cioè il caso in cui in USC il transito non è
+ancora avvenuto;
+\item il ramo \texttt{display == null} di \texttt{cambiaStato};
+\item il \texttt{default} dello switch di \texttt{step}.
+\end{itemize}
+
+I primi due erano buchi veri, mi ero semplicemente dimenticato di provare quei casi, e li
+ho chiusi con due test in più (\texttt{uscRestaInUscFinoAlTransito} e
+\texttt{fsmFunzionaSenzaDisplay}). Il terzo invece non si può coprire: lo switch gestisce
+tutti e 8 i valori dell'enum, quindi in quel \texttt{default} non ci si arriva mai. L'ho
+lasciato lo stesso perché lancia un'eccezione ed è una rete di sicurezza se un giorno
+qualcuno aggiunge uno stato nuovo. È lo stesso tipo di ramo infattibile che avevo già
+incontrato con AsmetaV sul modello (\S\ref{sec:asmetav-vc}).
+
+Dopo i due test aggiunti, quel \texttt{default} è rimasto l'unico branch scoperto di
+tutto il package.
 
 \screenshot{jacoco_coverage_report}{Report JaCoCo -- totale (solo package core)}{%
-Pagina principale del report (stato finale, dopo l'aggiunta dei due test mirati):
-98\% instruction / 98\% branch coverage; l'unico elemento non coperto e' 1 branch su
-61 (il \texttt{default} difensivo dello switch, strutturalmente irraggiungibile).}
+98\% instruction e 98\% branch; l'unico elemento scoperto è 1 branch su 61.}
 
 \screenshot{jacoco_detail_parcheggio}{Report JaCoCo -- dettaglio per classe del package core}{%
-Vista del package \texttt{it.tvsw.smartparking.core}: \texttt{Parcheggio} 100\%/100\%,
-enum e \texttt{SensorInput} 100\%, \texttt{SmartParkingFSM} 96\%/96\%.}
+Parcheggio 100\%/100\%, enum e SensorInput 100\%, SmartParkingFSM 96\%/96\%.}
 
 \screenshot{jacoco_detail_fsm}{Report JaCoCo -- dettaglio per metodo di SmartParkingFSM}{%
-Vista per metodo di \texttt{SmartParkingFSM}: tutti i metodi al 100\% tranne
-\texttt{step()}, il cui unico branch non coperto è il \texttt{default} difensivo
-dello switch, strutturalmente irraggiungibile (discusso nel testo).}
+Tutti i metodi al 100\% tranne step(), per via del default irraggiungibile.}

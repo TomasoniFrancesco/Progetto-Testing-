@@ -1,10 +1,8 @@
 \section{Conclusioni}
 
-Tirando le somme, il progetto tocca tutte e quattro le parti richieste: i requisiti, il
-modello Asmeta (con gli scenari, sia quelli corretti che quelli nuovi, e il model
-checking), i contratti JML sul nucleo del dominio e l'implementazione Java con i vari
-test (JUnit, MC/DC, Mockito, model based testing e combinatorial testing), la UI Vaadin,
-la CI e l'analisi statica.
+Il progetto copre tutte e quattro le parti chieste dalla consegna: i requisiti, il
+modello Asmeta con gli scenari e il model checking, i contratti JML sul nucleo e
+l'implementazione Java con i test, la UI, la CI e l'analisi statica.
 
 \subsection{Riepilogo delle evidenze}
 
@@ -15,13 +13,25 @@ la CI e l'analisi statica.
     \item Model Advisor e ATGT, opzionali (Sezione~2)
     \item OpenJML ESC sui contratti del nucleo (Sezione~3)
     \item UI Vaadin in esecuzione e test Selenium (Sezione~4)
-    \item JUnit (59 test del package \texttt{core}, tutti verdi, + 1 test Selenium UI escluso dalla build standard) e copertura JaCoCo (Sezione~5)
+    \item JUnit (59 test del package \texttt{core}, tutti verdi, più 1 test Selenium escluso dalla build standard) e copertura JaCoCo (Sezione~5)
     \item Analisi statica e ispezione critica con LLM (Sezione~6)
-    \item GitHub Actions: build e test automatici ad ogni push (Sezione~7)
+    \item GitHub Actions: build e test automatici a ogni push, più il branch \texttt{ci\_failure} come prova che la pipeline intercetta le regressioni (Sezione~7)
 \end{itemize}
 
-Quello che mi piace di questo percorso è che si tiene tutto insieme: si parte dal
-modello astratto, lo si valida e lo si verifica, poi si passa ai contratti JML dimostrati
-staticamente e si finisce con i test sul codice e la CI. Alla fine si vede come le
-tecniche viste a lezione, ognuna con il suo scopo, entrino a far parte di un unico
-processo di sviluppo in cui a ogni livello si controlla qualcosa.
+\subsection{Cosa mi porto a casa}
+
+La cosa che mi è rimasta di più, facendolo, è che le varie tecniche non si sovrappongono
+ma guardano posti diversi.
+
+Il model checking mi ha detto che i contatori non possono impazzire in nessuno stato
+raggiungibile, cosa che con i test non avrei mai potuto dimostrare, al massimo controllare
+in qualche caso. L'ESC mi ha dato la stessa garanzia sul codice vero, però solo su una
+classe che ho dovuto tenere apposta piccola e senza dipendenze. I test coprono anche il
+resto, ma solo nei casi che mi sono venuti in mente, e infatti la coverage mi ha fatto
+scoprire due rami che mi ero dimenticato. L'ispezione a mano, per ultima, ha trovato
+l'unica cosa che tutte le altre si erano perse, cioè il difetto della memoria a slot
+singolo: il codice era conforme al modello, quindi nessuna verifica automatica poteva
+segnalarlo, perché il problema stava nel modello.
+
+Se dovessi rifarlo, la cosa che cambierei è proprio quella: mettere l'associazione
+veicolo$\to$posto già nell'ASM, invece di scoprirne la mancanza alla fine.

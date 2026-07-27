@@ -2,28 +2,34 @@
 
 \subsection{Descrizione del sistema}
 
-SmartParking è un sistema che gestisce in automatico un parcheggio con due sbarre, una
-in ingresso e una in uscita, dei sensori che rilevano le auto e un totem che riconosce
-il tipo di utente. I posti sono di due categorie, standard e riservati ai disabili;
-nel modello, per semplicità, ne ho tenuto uno solo per categoria.
+Il sistema che ho scelto di fare è un parcheggio automatico. Ci sono due sbarre, una in
+ingresso e una in uscita, dei sensori che si accorgono quando arriva un'auto e un totem
+che legge che tipo di utente è. I posti sono di due tipi: standard e riservati ai
+disabili. Nel modello ne ho messo uno solo per tipo, altrimenti il model checker dopo
+esplode.
 
-Gli utenti che il sistema riconosce sono tre. L'utente STD è quello occasionale, che
-paga la sosta. Il DISABILE ha il permesso, non paga ed ha la priorità sui posti
-riservati. L'ABBONATO ha l'abbonamento mensile e, come il disabile, non paga. Quando
-arriva un'auto il sistema rileva la richiesta, capisce che tipo di utente è e controlla
-se c'è un posto adatto prima di alzare la sbarra. Se il posto non c'è, l'accesso viene
-negato.
+Gli utenti sono tre:
 
-Il disabile, come detto, ha la precedenza sui posti riservati. Se però questi sono
-finiti, il sistema gli assegna comunque un posto standard, sempre che ce ne sia uno
-libero: è quello che chiamo \emph{fallback}. Se sono esauriti anche i posti standard,
-allora l'accesso viene negato anche a lui.
+\begin{itemize}
+\item \textbf{STD}: l'utente occasionale, è l'unico che paga;
+\item \textbf{DISABILE}: ha il permesso, non paga e ha la precedenza sui posti riservati;
+\item \textbf{ABBONATO}: ha l'abbonamento mensile e non paga.
+\end{itemize}
 
-In uscita l'unico che passa dalla fase di pagamento è l'utente STD; abbonati e disabili
-escono direttamente. Tutto questo comportamento l'ho prima descritto in modo formale con
-una macchina a stati (ASM) in Asmeta, poi l'ho validato con scenari di simulazione
-(Avalla) e con alcune proprietà di model checking (CTL), e infine l'ho implementato in
-Java mettendo i contratti JML sul nucleo del dominio.
+Quando arriva un'auto il sistema la rileva, guarda che utente è e controlla se c'è un
+posto adatto. Se c'è alza la sbarra, se non c'è nega l'accesso.
+
+Il caso un po' più interessante è quello del disabile. Lui i posti riservati li prende
+per primo, ma se sono finiti il sistema non lo respinge: gli dà un posto standard, se ce
+n'è uno libero. Questo l'ho chiamato \emph{fallback} e torna spesso nel resto del
+documento, perché è il ramo che ho dovuto coprire con più attenzione un po' ovunque.
+Solo se sono finiti anche i posti standard allora viene negato l'accesso anche a lui.
+
+In uscita paga solo l'utente STD, gli altri due escono e basta.
+
+Il giro che ho fatto è questo: prima ho scritto il comportamento come macchina a stati in
+Asmeta, poi l'ho validato con gli scenari Avalla e con il model checking, e alla fine
+l'ho implementato in Java mettendo i contratti JML sul nucleo.
 
 \subsection{Requisiti funzionali}
 
@@ -64,8 +70,8 @@ RNF3 & \textbf{Assenza di stati bloccanti}: da ogni stato transitorio esiste sem
 
 \subsection{Macchina a stati}
 
-Nella Figura~\ref{fig:fsm-diagram} ho riportato gli 8 stati operativi del modello
-(\texttt{SmartParking.asm}) e le transizioni principali che li collegano.
+Qui sotto ci sono gli 8 stati del modello e le transizioni che li collegano. Il giro
+sopra è quello di ingresso, quello sotto è l'uscita, e da IDLE si parte sempre.
 
 \begin{figure}[h!]
 \centering
