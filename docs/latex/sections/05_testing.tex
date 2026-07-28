@@ -3,9 +3,9 @@
 
 \subsection{Struttura dei test}
 
-Ho diviso i test in più classi, una per ogni cosa che volevo coprire, invece di
-buttare tutto insieme. Così se un test si rompe si capisce subito di che tipo di
-problema si tratta. Le classi sono queste:
+I test sono divisi in più classi, una per ogni cosa da coprire, invece che tutti
+insieme. Così se un test si rompe si capisce subito di che tipo di problema si tratta.
+Le classi sono queste:
 
 \begin{longtable}{@{}p{4.3cm}p{8.7cm}@{}}
 \toprule
@@ -25,13 +25,13 @@ problema si tratta. Le classi sono queste:
 \subsection{MC/DC}
 
 Dentro \texttt{assegnaPosto} ci sono due decisioni composte, cioè con più di una
-condizione legata da and/or, e su quelle ho fatto la copertura MC/DC. La regola è che
+condizione legata da and/or, e su quelle serve la copertura MC/DC. La regola è che
 per ogni condizione serve una coppia di casi di test in cui cambia solo quella
 condizione e cambia anche il risultato della decisione. Vediamole una alla volta.
 
 La prima è quella del ramo STD/ABBONATO: $D_1 = (\text{utente}{=}\text{STD}
-\lor \text{utente}{=}\text{ABBONATO}) \land \text{postiStd}{>}0$. Le tre condizioni le
-chiamo A, B e C nell'ordine in cui compaiono.
+\lor \text{utente}{=}\text{ABBONATO}) \land \text{postiStd}{>}0$. Le tre condizioni
+sono chiamate A, B e C nell'ordine in cui compaiono.
 
 \begin{longtable}{@{}p{1cm}p{0.6cm}p{0.6cm}p{0.6cm}p{0.6cm}p{2.6cm}p{5.5cm}@{}}
 \toprule
@@ -69,7 +69,7 @@ TC7 & F & F & NESSUNO & isola $C_2$ (vs TC6) \\
 \end{longtable}
 
 Qui in TC5 il valore di $C_2$ non conta, perché se c'è il posto disabile il secondo if
-non viene nemmeno valutato: per questo ho messo un trattino.
+non viene nemmeno valutato: per questo c'è un trattino.
 
 \subsection{Combinatorial testing (pairwise)}
 
@@ -95,15 +95,15 @@ valori, e per farlo bastano 6 righe invece di 12.
 \label{tab:pairwise}
 \end{longtable}
 
-Le righe 3 e 5 sono quelle che mi piacciono di più, perché messe vicine fanno vedere la
-regola del posto riservato: stessa configurazione di contatori, ma il disabile entra e
-l'abbonato no.
+Le righe 3 e 5 sono le più interessanti, perché messe vicine fanno vedere la regola del
+posto riservato: stessa configurazione di contatori, ma il disabile entra e l'abbonato
+no.
 
 \subsection{Mockito}
 
 La FSM, ogni volta che cambia stato, manda un messaggio a un oggetto \texttt{Display}.
-Per controllare che questi messaggi partano davvero senza tirare in ballo la UI, ho usato
-Mockito: mi creo un \texttt{Display} finto e poi con \texttt{verify} controllo che il
+Per controllare che questi messaggi partano davvero senza tirare in ballo la UI c'è
+Mockito: si crea un \texttt{Display} finto e poi con \texttt{verify} si controlla che il
 metodo \texttt{mostra} sia stato chiamato con il testo giusto.
 
 \begin{lstlisting}[language=Java, caption={Verifica delle notifiche con Mockito}]
@@ -117,17 +117,17 @@ void notificaAccessoNegatoQuandoParcheggioPieno() {
 }
 \end{lstlisting}
 
-In questo test parto da un parcheggio già pieno, faccio arrivare un'auto e controllo che
-al display arrivi davvero ``Accesso negato''.
+Il test parte da un parcheggio già pieno, fa arrivare un'auto e controlla che al display
+arrivi davvero ``Accesso negato''.
 
 \subsection{Model Based Testing}
 
 Qui l'idea è prendere uno scenario già scritto sul modello astratto e riportarlo tale e
-quale sul codice vero. Ho preso \texttt{test\_pieno.avalla} e l'ho tradotto passo passo in
+quale sul codice vero. \texttt{test\_pieno.avalla} è tradotto passo passo in
 \texttt{ScenarioAvallaTest}: ogni \texttt{set} dell'avalla diventa la preparazione
 dell'input, ogni \texttt{step} una chiamata a \texttt{step()} e ogni \texttt{check} un
-assert. Accanto a ciascuna riga ho lasciato un commento con la riga originale dello
-scenario, così il confronto tra i due file si fa senza doverli tenere aperti tutti e due.
+assert. Accanto a ciascuna riga c'è un commento con la riga originale dello scenario,
+così il confronto tra i due file si fa senza doverli tenere aperti tutti e due.
 
 \subsection{Esecuzione e copertura}
 
@@ -137,9 +137,9 @@ Vista JUnit con tutti i test verdi e il conteggio totale.}
 Tutti i test del package \texttt{core} passano: sono 59, più quello Selenium che sta
 fuori dalla build normale.
 
-La copertura l'ho misurata con JaCoCo lanciando \texttt{mvn verify} e guardando il report
-in \texttt{target/site/jacoco/index.html}. Dal conteggio ho tolto due cose: la UI Vaadin,
-che provo end-to-end con Selenium e che JaCoCo non riesce a misurare, e la classe di
+La copertura si misura con JaCoCo lanciando \texttt{mvn verify} e guardando il report in
+\texttt{target/site/jacoco/index.html}. Dal conteggio sono escluse due cose: la UI Vaadin,
+provata end-to-end con Selenium e che JaCoCo non riesce a misurare, e la classe di
 avvio di Spring Boot, che sono tre righe di boilerplate. L'esclusione è scritta nel
 \texttt{pom.xml}.
 
@@ -156,13 +156,13 @@ ancora avvenuto;
 \item il \texttt{default} dello switch di \texttt{step}.
 \end{itemize}
 
-I primi due erano buchi veri, mi ero semplicemente dimenticato di provare quei casi, e li
+I primi due erano buchi veri, casi che mi ero semplicemente dimenticato di provare, e li
 ho chiusi con due test in più (\texttt{uscRestaInUscFinoAlTransito} e
 \texttt{fsmFunzionaSenzaDisplay}). Il terzo invece non si può coprire: lo switch gestisce
 tutti e 8 i valori dell'enum, quindi in quel \texttt{default} non ci si arriva mai. L'ho
 lasciato lo stesso perché lancia un'eccezione ed è una rete di sicurezza se un giorno
-qualcuno aggiunge uno stato nuovo. È lo stesso tipo di ramo infattibile che avevo già
-incontrato con AsmetaV sul modello (\S\ref{sec:asmetav-vc}).
+qualcuno aggiunge uno stato nuovo. È lo stesso tipo di ramo infattibile già incontrato
+con AsmetaV sul modello (\S\ref{sec:asmetav-vc}).
 
 Dopo i due test aggiunti, quel \texttt{default} è rimasto l'unico branch scoperto di
 tutto il package.

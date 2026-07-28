@@ -6,13 +6,13 @@ Il progetto Java sta nella cartella \texttt{java/} ed è un progetto Maven norma
 Java 17. Le dipendenze principali sono Spring Boot con Vaadin 24 per la UI, JUnit 5 e
 Mockito per i test, JaCoCo per la copertura.
 
-Il cuore sta nel package \texttt{it.tvsw.smartparking.core}, dove ho messo:
+Il cuore sta nel package \texttt{it.tvsw.smartparking.core}, che contiene:
 
 \begin{itemize}
     \item \texttt{StatoSistema}, \texttt{TipoUtente}, \texttt{TipoPosto}: tre enum, uguali ai domini del modello ASM;
     \item \texttt{Parcheggio}: il nucleo, ed è l'unica classe con i contratti JML (Sezione~\ref{sec:jml-ref});
     \item \texttt{SensorInput}: mette insieme i sei input monitorati di uno step;
-    \item \texttt{Display}: un'interfaccia per le notifiche, che poi mi serve per Mockito;
+    \item \texttt{Display}: un'interfaccia per le notifiche, che poi serve per Mockito;
     \item \texttt{SmartParkingFSM}: la macchina a stati vera e propria.
 \end{itemize}
 
@@ -44,13 +44,13 @@ modello ASM il contatore viene scalato solo al transito vero e proprio, cioè in
 mentre qui la classe \texttt{Parcheggio} decide e scala tutto insieme dentro
 \texttt{assegnaPosto}, che viene chiamato da \texttt{gestisciVer}. Negli scenari di test
 del progetto la differenza non si vede, perché nessuno va a controllare lo stato in mezzo
-ai due passi, e l'ho fatto apposta per tenere la classe più semplice. Ne riparlo meglio
+ai due passi, ed è una scelta fatta apposta per tenere la classe più semplice. Ne riparlo meglio
 nell'ispezione del codice, in Sezione~\ref{sec:analisi-statica}.
 
 \subsection{Interfaccia utente (Vaadin)}
 
-Per la UI ho fatto una vista sola, \texttt{MainView}, che mostra lo stato corrente e
-quanti posti sono ancora liberi. I sensori li ho simulati con dei bottoni: ``Arriva auto
+La UI è una vista sola, \texttt{MainView}, che mostra lo stato corrente e quanti posti
+sono ancora liberi. I sensori sono simulati con dei bottoni: ``Arriva auto
 STD/DISABILE/ABBONATO'', ``Transito'', ``Pagamento'', ``Auto va via'' e ``Auto in
 uscita''. Cliccandoli si fa avanzare la macchina a stati come se arrivassero gli input
 dai sensori veri.
@@ -63,27 +63,26 @@ Questa è la pagina appena aperta: stato IDLE e i due contatori a 1.
 \screenshot{vaadin_ui_ingresso_std}{UI Vaadin -- dopo un ingresso STD}{%
 Dopo ``Arriva auto STD'' e ``Transito'': stato IDLE e posti standard liberi a 0.}
 
-Qui ho cliccato ``Arriva auto STD'' e poi ``Transito''. Siamo tornati in IDLE ma i posti
+Qui è stato cliccato ``Arriva auto STD'' e poi ``Transito''. Siamo tornati in IDLE ma i posti
 standard sono scesi a 0.
 
 \screenshot{vaadin_ui_neg}{UI Vaadin -- accesso negato a parcheggio pieno}{%
 Con entrambi i contatori a 0, un nuovo arrivo mostra il messaggio ``Accesso negato''.}
 
-Con il parcheggio pieno, se provo a far arrivare un'altra auto compare il messaggio di
-accesso negato.
+Con il parcheggio pieno, se arriva un'altra auto compare il messaggio di accesso
+negato.
 
 \screenshot{vaadin_ui_tarif}{UI Vaadin -- attesa pagamento}{%
 Stato TARIF dopo aver cliccato ``Auto in uscita'' con un utente STD dentro.}
 
-E questo è lo stato TARIF: ho fatto uscire l'utente STD e il sistema si è fermato ad
+E questo è lo stato TARIF: l'utente STD sta uscendo e il sistema si è fermato ad
 aspettare il pagamento.
 
 \subsection{Test end-to-end con Selenium}
 
-La UI l'ho provata anche con un test end-to-end in Selenium
-(\texttt{UISeleniumTest}). L'ho taggato ``ui'' e tolto dalla build normale, perché per
-girare ha bisogno dell'applicazione già avviata e di Chrome installato, e in CI non ci
-sono.
+La UI è provata anche con un test end-to-end in Selenium (\texttt{UISeleniumTest}). È
+taggato ``ui'' e sta fuori dalla build normale, perché per girare ha bisogno
+dell'applicazione già avviata e di Chrome installato, e in CI non ci sono.
 
 Quello che fa è: apre la pagina con ChromeDriver in modalità headless, aspetta che Vaadin
 finisca di disegnare la pagina lato client (con \texttt{WebDriverWait}, altrimenti trova

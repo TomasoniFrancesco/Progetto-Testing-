@@ -7,10 +7,9 @@ ho passato tutto il sorgente dei package \texttt{core} e \texttt{ui} e gli ho ch
 leggerlo cercando nomi poco chiari, casi limite non gestiti, possibili
 \texttt{NullPointerException} e punti in cui il codice si allontana dal modello ASM.
 
-Le cose che sono uscite non le ho prese per buone così com'erano. Le ho valutate una per
-una e per ognuna ho deciso se correggerla, mitigarla o lasciarla stare spiegando perché.
-In pratica l'LLM mi ha segnalato i punti su cui ragionare, ma le decisioni le ho prese
-io.
+Le cose che sono uscite non le ho prese per buone così com'erano: le ho valutate una per
+una, decidendo di volta in volta se correggerle, mitigarle o lasciarle stare spiegando
+perché. L'LLM ha segnalato i punti su cui ragionare, le decisioni le ho prese io.
 
 \subsection{Checklist preliminare}
 
@@ -36,8 +35,8 @@ Prima di guardare le segnalazioni ho fatto un giro di controlli di base:
 
     \item \textbf{\texttt{TipoPosto.NESSUNO} vuol dire due cose diverse}: in
     \texttt{assegnaPosto} significa ``non c'è posto'', in \texttt{liberaPosto} significa
-    ``non fare niente''. Ho chiarito la cosa nel Javadoc invece di inventarmi un tipo
-    separato, che avrebbe appesantito una classe che volevo tenere semplice.
+    ``non fare niente''. Chiarito nel Javadoc, invece di inventare un tipo separato che
+    avrebbe appesantito una classe che doveva restare semplice.
 
     \item \textbf{\texttt{liberaPosto} lancia eccezione se il contatore è già al
     massimo}. Questa l'ho tenuta apposta: preferisco un crash che si vede subito a un
@@ -46,11 +45,11 @@ Prima di guardare le segnalazioni ho fatto un giro di controlli di base:
 
     \item \textbf{Il decremento avviene in un momento diverso rispetto all'ASM}: qui
     \texttt{assegnaPosto} decide e scala insieme, nell'ASM si scala al transito. Negli
-    scenari di test la differenza non si vede, quindi ho tenuto la versione più semplice
-    e l'ho scritta nel Javadoc della classe.
+    scenari di test la differenza non si vede, quindi resta la versione più semplice,
+    scritta nel Javadoc della classe.
 
     \item \textbf{Non c'è thread-safety}. Va bene così, perché c'è un varco solo pilotato
-    da una FSM sequenziale, esattamente come nel modello. L'ho segnata come limite se un
+    da una FSM sequenziale, esattamente come nel modello. Resta segnata come limite se un
     giorno si volessero gestire più varchi.
 
     \item \textbf{\texttt{posto\_assegnato} è una memoria da un posto solo, e il difetto

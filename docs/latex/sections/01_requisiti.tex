@@ -2,11 +2,10 @@
 
 \subsection{Descrizione del sistema}
 
-Il sistema che ho scelto di fare è un parcheggio automatico. Ci sono due sbarre, una in
-ingresso e una in uscita, dei sensori che si accorgono quando arriva un'auto e un totem
-che legge che tipo di utente è. I posti sono di due tipi: standard e riservati ai
-disabili. Nel modello ne ho messo uno solo per tipo, altrimenti il model checker dopo
-esplode.
+SmartParking è un parcheggio automatico. Ci sono due sbarre, una in ingresso e una in
+uscita, dei sensori che si accorgono quando arriva un'auto e un totem che legge che tipo
+di utente è. I posti sono di due tipi: standard e riservati ai disabili. Nel modello ne
+ho messo uno solo per tipo, altrimenti il model checker dopo esplode.
 
 Gli utenti sono tre:
 
@@ -21,15 +20,15 @@ posto adatto. Se c'è alza la sbarra, se non c'è nega l'accesso.
 
 Il caso un po' più interessante è quello del disabile. Lui i posti riservati li prende
 per primo, ma se sono finiti il sistema non lo respinge: gli dà un posto standard, se ce
-n'è uno libero. Questo l'ho chiamato \emph{fallback} e torna spesso nel resto del
-documento, perché è il ramo che ho dovuto coprire con più attenzione un po' ovunque.
-Solo se sono finiti anche i posti standard allora viene negato l'accesso anche a lui.
+n'è uno libero. Questo è il \emph{fallback}, e torna spesso nel resto del documento
+perché è il ramo che ha richiesto più attenzione un po' ovunque. Solo se sono finiti
+anche i posti standard viene negato l'accesso anche a lui.
 
 In uscita paga solo l'utente STD, gli altri due escono e basta.
 
-Il giro che ho fatto è questo: prima ho scritto il comportamento come macchina a stati in
-Asmeta, poi l'ho validato con gli scenari Avalla e con il model checking, e alla fine
-l'ho implementato in Java mettendo i contratti JML sul nucleo.
+Il giro è questo: prima il comportamento come macchina a stati in Asmeta, poi la
+validazione con gli scenari Avalla e il model checking, e infine l'implementazione in
+Java con i contratti JML sul nucleo.
 
 \subsection{Requisiti funzionali}
 
@@ -71,7 +70,7 @@ RNF3 & \textbf{Assenza di stati bloccanti}: da ogni stato transitorio esiste sem
 \subsection{Macchina a stati}
 
 Qui sotto ci sono gli 8 stati del modello e le transizioni che li collegano. Il giro
-sopra è quello di ingresso, quello sotto è l'uscita, e da IDLE si parte sempre.
+sopra è quello di ingresso, quello sotto l'uscita, e da IDLE si parte sempre.
 
 \begin{figure}[h!]
 \centering
