@@ -201,6 +201,15 @@ $ mvn test-compile org.pitest:pitest-maven:mutationCoverage
 Il risultato è che su \textbf{90 mutanti generati ne sono stati uccisi 90}, cioè un
 mutation score del 100\%, con zero mutanti privi di copertura.
 
+\screenshot{pit_report}{Report PIT -- riepilogo sul package core}{%
+Mutation coverage 90/90 e test strength 100\% sul package core.}
+
+Nel riepilogo si vedono due numeri diversi che è bene non confondere. La \emph{line
+coverage} è 127 righe su 128, e quella riga scoperta è sempre il \texttt{default}
+irraggiungibile dello switch di cui sopra. La \emph{mutation coverage} è 90 su 90, e dice
+tutt'altro: non quante righe sono state eseguite, ma su quante di esse un difetto
+introdotto di proposito è stato intercettato dai test.
+
 \begin{longtable}{@{}p{6.2cm}p{2cm}p{2cm}p{2cm}@{}}
 \toprule
 \textbf{Operatore di mutazione} & \textbf{Generati} & \textbf{Uccisi} & \textbf{\%} \\
@@ -220,6 +229,40 @@ mutation score del 100\%, con zero mutanti privi di copertura.
 \caption{Mutanti generati da PIT sul package \texttt{core}, per operatore.}
 \label{tab:pit}
 \end{longtable}
+
+\subsubsection*{Un mutante da vicino}
+
+Per capire cosa vuol dire in concreto ``mutante ucciso'' conviene guardarne uno solo.
+Prendiamo il ramo STD/ABBONATO di \texttt{assegnaPosto}, dove il codice originale è
+questo:
+
+\begin{lstlisting}[language=Java, caption={Codice originale}]
+if (postiStd > 0) {
+    postiStd = postiStd - 1;
+    return TipoPosto.POSTO_STD;
+}
+return TipoPosto.NESSUNO;
+\end{lstlisting}
+
+L'operatore \texttt{ConditionalsBoundary} sposta il limite del confronto, trasformando
+\texttt{postiStd > 0} in \texttt{postiStd >= 0}. È una modifica di un carattere, e in
+tutte le esecuzioni con almeno un posto libero non cambia assolutamente niente: il codice
+mutato si comporta come l'originale.
+
+La differenza salta fuori in un caso solo, quello con \texttt{postiStd == 0}. Lì
+l'originale salta il blocco e restituisce \texttt{NESSUNO}, mentre il mutante entra,
+decrementa il contatore portandolo a $-1$ e restituisce \texttt{POSTO\_STD}, cioè fa
+entrare un'auto in un parcheggio pieno.
+
+Quel mutante viene ucciso dal primo caso della tabella pairwise
+(Tabella~\ref{tab:pairwise}), l'unico che prova un utente STD con entrambi i contatori a
+zero. Ed è interessante notare che lo stesso difetto sarebbe stato intercettato anche
+dagli altri due livelli di verifica, ognuno a modo suo: il contatore a $-1$ viola
+l'invariante JML \texttt{0 <= postiStd} (Sezione~\ref{sec:jml-ref}) e viola la CTLSPEC
+\texttt{ag(posti\_std >= 0)} verificata sul modello (\S\ref{sec:asmetav-vc}). Tre
+tecniche diverse che convergono sullo stesso stato illegale.
+
+\subsubsection*{Due operatori che valgono più degli altri}
 
 Due righe della tabella mi hanno fatto piacere più delle altre, perché ricollegano il
 risultato a lavoro fatto prima.

@@ -8,7 +8,7 @@ Abstract State Machine (Asmeta), specificato con JML e implementato in Java con
 interfaccia Vaadin.
 
 **📄 La documentazione completa del progetto è il documento unico
-[`docs/latex/main.pdf`](docs/latex/main.pdf) (32 pagine).**
+[`docs/latex/main.pdf`](docs/latex/main.pdf) (33 pagine).**
 
 ## Descrizione
 
