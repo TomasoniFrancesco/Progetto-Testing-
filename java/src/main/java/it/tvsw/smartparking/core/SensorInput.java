@@ -1,11 +1,15 @@
 package it.tvsw.smartparking.core;
 
+import java.io.Serializable;
+
 /**
  * Raggruppa i 6 input monitorati dal modello ASM ({@code sens_in}, {@code sens_out},
  * {@code transito_ok}, {@code auto_via}, {@code utente_rilevato}, {@code pagamento_ok})
  * usati da {@link SmartParkingFSM#step(SensorInput)}. Immutabile.
  */
-public final class SensorInput {
+public final class SensorInput implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final boolean sensIn;
     private final boolean sensOut;

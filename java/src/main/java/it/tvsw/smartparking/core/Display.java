@@ -1,11 +1,13 @@
 package it.tvsw.smartparking.core;
 
+import java.io.Serializable;
+
 /**
  * Interfaccia di notifica verso l'esterno (UI, log, ecc.). La FSM la invoca
  * ad ogni cambio di stato significativo. Permette di testare le notifiche
  * con Mockito senza dipendere da Vaadin.
  */
-public interface Display {
+public interface Display extends Serializable {
 
     /**
      * Mostra un messaggio informativo relativo a un cambio di stato del sistema.

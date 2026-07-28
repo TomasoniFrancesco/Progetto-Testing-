@@ -1,5 +1,7 @@
 package it.tvsw.smartparking.core;
 
+import java.io.Serializable;
+
 /**
  * Macchina a stati che replica la main rule {@code r_Main} del modello ASM
  * ({@code src/SmartParking.asm}): ad ogni chiamata di {@link #step(SensorInput)}
@@ -7,7 +9,9 @@ package it.tvsw.smartparking.core;
  * esattamente come nel modello (un solo ramo dello switch e' attivo per step,
  * come nell'{@code if stato = X then ... endif} dentro il {@code par} dell'ASM).
  */
-public class SmartParkingFSM {
+public final class SmartParkingFSM implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private StatoSistema stato;
     private TipoPosto postoAssegnato;

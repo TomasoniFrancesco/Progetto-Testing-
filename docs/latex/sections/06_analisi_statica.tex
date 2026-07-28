@@ -165,22 +165,106 @@ perché. L'LLM ha segnalato i punti su cui ragionare, le decisioni le ho prese i
     versione vera si metterebbe un \texttt{setEnabled} legato allo stato.
 \end{enumerate}
 
+\subsection{Analisi automatica con SpotBugs}
+\label{sec:spotbugs}
+
+L'ultimo passaggio è il tool automatico. Ho usato SpotBugs (il successore di FindBugs,
+che ormai è fermo), configurato nel \texttt{pom.xml} con \texttt{effort=Max} e
+\texttt{threshold=Low}, cioè il massimo della sensibilità, così da vedere anche le
+segnalazioni di priorità bassa. Si lancia con \texttt{mvn spotbugs:check}.
+
+Prima di arrivare al risultato ho perso un po' di tempo con un problema che non c'entra
+niente col codice: sulla mia macchina Maven girava di default con una JDK 26, e SpotBugs
+non riusciva a leggerne il bytecode (\texttt{Unsupported class file major version 70}).
+Il risultato era ingannevole, perché la build falliva ma con zero classi analizzate e
+zero bug: sembrava un errore mio. Lanciandolo con la JDK 17, la stessa che usa la CI, è
+andato a posto.
+
+\subsubsection*{Prima passata: 7 bug}
+
+\begin{longtable}{@{}p{4.6cm}p{1.5cm}p{6.6cm}@{}}
+\toprule
+\textbf{Tipo} & \textbf{Priorità} & \textbf{Dove} \\
+\midrule
+\endhead
+\texttt{CT\_CONSTRUCTOR\_THROW} & Medium & I due costruttori di \texttt{Parcheggio} \\
+\texttt{CT\_CONSTRUCTOR\_THROW} & Medium & I due costruttori di \texttt{SmartParkingFSM} \\
+\texttt{SE\_BAD\_FIELD} & Medium & \texttt{MainView}, campo \texttt{fsm} \\
+\texttt{SE\_NO\_SERIALVERSIONID} & Low & \texttt{MainView} \\
+\texttt{SE\_NO\_SERIALVERSIONID} & Low & \texttt{Application} \\
+\bottomrule
+\caption{Le 7 segnalazioni di SpotBugs (le prime due righe valgono 2 bug ciascuna).}
+\label{tab:spotbugs}
+\end{longtable}
+
+Si dividono in due gruppi con storie molto diverse.
+
+\paragraph{I quattro \texttt{CT\_CONSTRUCTOR\_THROW}.}
+Riguardano tutti e quattro i costruttori che validano i parametri e lanciano
+\texttt{IllegalArgumentException}. SpotBugs avverte che un costruttore che lancia lascia
+l'oggetto parzialmente costruito, e questo apre la porta a un \emph{finalizer attack}:
+una sottoclasse malevola sovrascrive \texttt{finalize()} e si ritrova in mano il
+riferimento a un oggetto che non ha mai superato i controlli.
+
+Qui c'è un cortocircuito che mi ha fatto pensare. Quei \texttt{throw} sono esattamente i
+controlli difensivi che ho messo per far rispettare a runtime i \texttt{requires} JML
+(Sezione~\ref{sec:jml-ref}): cioè la cosa che il tool segnala è la stessa che rende il
+codice robusto. Toglierli sarebbe stato un peggioramento.
+
+La soluzione giusta non è rinunciare alla validazione ma togliere il presupposto
+dell'attacco, cioè l'ereditarietà: ho dichiarato \texttt{final} sia \texttt{Parcheggio}
+sia \texttt{SmartParkingFSM}. Se la classe non si può estendere, nessuno può sovrascrivere
+\texttt{finalize()} e l'attacco non è più possibile. Prima di farlo ho controllato che
+nessuno le estendesse e che Mockito, in \texttt{DisplayMockTest}, mocchi soltanto
+l'interfaccia \texttt{Display}, che invece resta com'era.
+
+\paragraph{I tre bug di serializzazione.}
+Questo gruppo è quello che vale davvero, perché è l'unico punto in cui l'analisi
+automatica ha trovato un difetto che né la checklist né l'LLM avevano visto.
+
+\texttt{SE\_BAD\_FIELD} segnala che \texttt{MainView} tiene un campo \texttt{fsm} non
+serializzabile. Sembra una pedanteria, e invece no: Vaadin mette l'intero albero dei
+componenti nella sessione HTTP, quindi con la replicazione di sessione o al riavvio del
+server quella vista non si riesce a serializzare e l'applicazione si pianta. È un difetto
+vero, solo latente, perché in locale con un'istanza sola non si manifesta mai.
+
+Il motivo per cui gli altri due controlli se l'erano perso è chiaro a posteriori: per
+accorgersene bisogna sapere come Vaadin gestisce la sessione, e né la checklist né la
+lettura del codice guardavano lì. Il tool invece conosce i contratti delle librerie.
+
+Ho reso \texttt{Parcheggio}, \texttt{SmartParkingFSM} e \texttt{SensorInput}
+serializzabili. Ho dovuto far estendere \texttt{Serializable} anche all'interfaccia
+\texttt{Display}, perché in \texttt{MainView} viene passata come lambda
+(\texttt{messaggioLabel::setText}) e una lambda è serializzabile solo se lo è la sua
+interfaccia funzionale. Infine ho aggiunto \texttt{serialVersionUID} a tutte le classi
+coinvolte, \texttt{MainView} e \texttt{Application} comprese.
+
+\subsubsection*{Seconda passata: 0 bug}
+
+Dopo le correzioni SpotBugs riporta \texttt{BugInstance size is 0}, i 59 test del core
+restano tutti verdi e la copertura JaCoCo non si muove (98\% instruction e 98\% branch,
+sempre con quell'unico \texttt{default} irraggiungibile come solo branch scoperto).
+
 \subsection{Bilancio}
 
-Fra checklist e LLM sono uscite otto osservazioni. Nessun bug vero da correggere nel
-codice, e in due casi mi è bastato chiarire le cose nel Javadoc.
+Fra i tre passaggi sono uscite quindici osservazioni: sette dalla checklist e dall'LLM,
+sette da SpotBugs, più il difetto della specifica. Ed è interessante che ognuno dei tre
+metodi abbia trovato cose che gli altri due non potevano vedere.
 
-Quello che mi ha colpito è che i due metodi hanno trovato cose diverse. La checklist,
-proprio perché è meccanica e va per categorie, mi ha fatto guardare le \emph{firme} dei
-metodi, che leggendo il codice per capire cosa fa non guardi mai, e da lì è saltato fuori
-il problema dei parametri adiacenti dello stesso tipo. L'LLM, che invece ragiona sul
-significato, ha trovato il difetto della memoria a slot singolo, che una checklist non
-avrebbe mai potuto vedere perché non è una violazione di nessuna regola: è il modello a
-essere incompleto.
+La \textbf{checklist} è meccanica e va per categorie, quindi mi ha costretto a guardare
+le \emph{firme} dei metodi, che leggendo il codice per capire cosa fa non guardi mai: da
+lì è saltato fuori il problema dei parametri adiacenti dello stesso tipo.
 
-E quel difetto, il punto 6, è la cosa più utile emersa da tutto il progetto, perché né il
-testing di conformità né la verifica ESC riuscivano a vederlo. I contratti JML di
+L'\textbf{LLM} ragiona sul significato, e ha trovato il difetto della memoria a slot
+singolo. Una checklist non avrebbe potuto vederlo, perché non viola nessuna regola: è il
+modello a essere incompleto.
+
+\textbf{SpotBugs} conosce i contratti delle librerie, e ha trovato il problema di
+serializzazione di Vaadin, che gli altri due non avevano gli strumenti per notare.
+
+Fra tutte, quella che conta di più resta il difetto della memoria a slot singolo, perché
+né il testing di conformità né la verifica ESC riuscivano a vederlo. I contratti JML di
 \texttt{Parcheggio} restano rispettati anche nell'esecuzione che rilascia il posto
 sbagliato, dato che il problema sta più in alto, a livello di FSM e di modello. Il model
-checking e l'ESC dimostrano quello che è stato formalizzato; l'ispezione a mano trova
-quello che nella formalizzazione non c'è.
+checking e l'ESC dimostrano quello che è stato formalizzato; l'ispezione trova quello che
+nella formalizzazione non c'è.

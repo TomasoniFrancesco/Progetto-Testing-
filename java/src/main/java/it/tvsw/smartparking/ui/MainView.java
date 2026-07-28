@@ -20,6 +20,8 @@ import it.tvsw.smartparking.core.TipoUtente;
 @Route("")
 public class MainView extends VerticalLayout {
 
+    private static final long serialVersionUID = 1L;
+
     private final SmartParkingFSM fsm;
     private TipoUtente ultimoUtente = TipoUtente.STD;
 

@@ -18,6 +18,10 @@ Il cuore sta nel package \texttt{it.tvsw.smartparking.core}, che contiene:
 
 Fuori dal core ci sono solo la vista Vaadin e la classe di avvio di Spring Boot.
 
+\texttt{Parcheggio} e \texttt{SmartParkingFSM} sono dichiarate \texttt{final} e tutte
+le classi del core sono serializzabili: non era così all'inizio, sono due modifiche
+arrivate dopo l'analisi statica e le spiego in Sezione~\ref{sec:spotbugs}.
+
 \subsection{La macchina a stati}
 
 \texttt{SmartParkingFSM} ha un metodo \texttt{step(SensorInput)} che fa la stessa cosa

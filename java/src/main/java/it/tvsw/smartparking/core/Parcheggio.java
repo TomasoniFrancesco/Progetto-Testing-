@@ -1,5 +1,7 @@
 package it.tvsw.smartparking.core;
 
+import java.io.Serializable;
+
 /**
  * Nucleo puro del dominio SmartParking: gestisce il conteggio dei posti liberi
  * standard e disabili e la logica di assegnazione/rilascio, corrispondente alla
@@ -17,7 +19,9 @@ package it.tvsw.smartparking.core;
  * osservabile dagli scenari di test del progetto (nessun controllo intermedio
  * tra i due passi) ed è stata scelta per mantenere la classe più semplice.</p>
  */
-public class Parcheggio {
+public final class Parcheggio implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /** Capacita' massima dei posti standard (allineata all'init dell'ASM: posti_std = 1). */
     public static final int MAX_STD = 1;
