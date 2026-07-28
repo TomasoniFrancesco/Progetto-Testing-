@@ -206,3 +206,50 @@ Esito Verified per tutti e sei i metodi di Parcheggio, senza righe ``cannot be p
 
 Alla fine tutti e sei i metodi (i due costruttori, \texttt{assegnaPosto},
 \texttt{liberaPosto} e i due getter) risultano Verified.
+
+\subsection{Verifica dinamica: i contratti a runtime (RAC)}
+\label{sec:jml-rac}
+
+Vedere scritto ``Verified'' per tutti i metodi è comodo, ma da solo non mi diceva se i
+contratti stessero davvero controllando qualcosa o se fossero solo scritti bene. È lo
+stesso dubbio che mi era venuto con la pipeline verde della CI: passa, ma se rompo
+qualcosa se ne accorge?
+
+Per togliermelo ho usato OpenJML nell'altra modalità, \texttt{--rac} (Runtime Assertion
+Checking). Qui il tool non dimostra niente in anticipo: infila i controlli dentro il
+bytecode, e i contratti vengono verificati mentre il programma gira. Se una clausola
+salta, l'esecuzione si ferma dicendo quale.
+
+Il programma di prova è \texttt{DemoRac} (package \texttt{it.tvsw.smartparking.jml}), che
+serve solo a questo e non viene chiamato né dalla FSM né dalla UI. Fa tre cose in fila:
+prima un uso legittimo, che non deve dare nessun errore, e poi due violazioni fatte
+apposta.
+
+\begin{lstlisting}[language=Java, caption={Le due violazioni volontarie in DemoRac}]
+// 1. Viola il requires del costruttore: MAX_STD vale 1, qui ne passo 5
+Parcheggio p = new Parcheggio(5, 0);
+
+// 2. Viola il requires di liberaPosto: il contatore e' gia' al massimo,
+//    perche' non e' entrato nessuno, quindi l'incremento sfonderebbe l'invariante
+Parcheggio q = new Parcheggio();
+q.liberaPosto(TipoPosto.POSTO_STD);
+\end{lstlisting}
+
+I comandi per compilare ed eseguire sono questi:
+
+\begin{lstlisting}[style=terminal, caption={Compilazione ed esecuzione con RAC}]
+$ openjml --rac -d out \
+    java/src/main/java/it/tvsw/smartparking/core/*.java \
+    java/src/main/java/it/tvsw/smartparking/jml/DemoRac.java
+
+$ java -cp out:$OPENJML_HOME/jmlruntime.jar \
+    it.tvsw.smartparking.jml.DemoRac
+\end{lstlisting}
+
+La seconda violazione è quella che mi interessava di più, perché è esattamente il caso
+che aveva fatto fallire la prova ESC prima che aggiungessi il \texttt{requires} sulla
+capacità. Prima quel caso era un buco nella specifica e il solver me lo segnalava come
+``cannot establish InvariantExit''; adesso che il \texttt{requires} c'è, lo stesso caso
+diventa una precondizione violata dal chiamante, e a runtime si vede subito. Le due
+modalità guardano lo stesso identico punto da due lati: ESC dice ``non riesco a
+dimostrare che vale sempre'', RAC dice ``ecco l'esecuzione in cui non vale''.

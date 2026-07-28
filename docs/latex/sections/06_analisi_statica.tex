@@ -1,30 +1,120 @@
-\section{Analisi statica e ispezione del codice con LLM}
+\section{Ispezione del codice e analisi statica}
 \label{sec:analisi-statica}
 
-La consegna chiedeva di fare l'ispezione ``con chatgpt o LLM in generale'', quindi ho
-usato ChatGPT come se fosse un collega a cui far dare una seconda occhiata al codice. Gli
-ho passato tutto il sorgente dei package \texttt{core} e \texttt{ui} e gli ho chiesto di
-leggerlo cercando nomi poco chiari, casi limite non gestiti, possibili
-\texttt{NullPointerException} e punti in cui il codice si allontana dal modello ASM.
+Questa parte l'ho affrontata in tre passaggi diversi, perché ognuno trova cose che gli
+altri due si perdono: prima l'ispezione manuale con la checklist vista a lezione, poi
+una seconda lettura fatta fare a un LLM, e infine l'analisi automatica con SpotBugs.
+
+\subsection{Ispezione con la checklist}
+\label{sec:checklist}
+
+La prima passata l'ho fatta con la checklist di code inspection del corso, andando in
+ordine sulle nove categorie. Sotto riporto per ognuna cosa è venuto fuori. Alcune voci
+sul mio codice non si applicano proprio, e lo dico invece di spuntarle a vuoto.
+
+\paragraph{1. Specification / Design.}
+La funzionalità descritta nei requisiti c'è tutta: ogni requisito da RF1 a RF14 ha il
+suo corrispettivo in \texttt{SmartParkingFSM} o in \texttt{Parcheggio}. Di funzionalità
+in più rispetto alla specifica non ne ho trovate: i due metodi che sembravano candidati,
+\texttt{SensorInput.nessunEvento()} e il costruttore \texttt{SmartParkingFSM(Display)},
+sono entrambi usati dai test, il primo per provare i self-loop (uno step senza nessun
+sensore attivo) e il secondo per costruire la FSM con il parcheggio di default.
+
+\paragraph{2. Initialization and Declarations.}
+Tutti i campi sono inizializzati nel costruttore, e quelli che non cambiano mai
+(\texttt{parcheggio}, \texttt{display}, tutti i campi di \texttt{SensorInput}) sono
+\texttt{final}. I tipi sono quelli giusti: gli stati e i tipi di utente sono enum e non
+interi o stringhe, quindi un valore fuori dominio non è nemmeno rappresentabile. Tutti i
+campi sono \texttt{private}, e \texttt{SensorInput} è dichiarata \texttt{final} e
+immutabile.
+
+\paragraph{3. Method Calls.}
+Qui è uscita la segnalazione più concreta di tutta la checklist, e non l'aveva vista
+nessun altro controllo. Ci sono due firme con \textbf{parametri adiacenti dello stesso
+tipo}:
+
+\begin{lstlisting}[language=Java, caption={Firme con parametri adiacenti dello stesso tipo}]
+public Parcheggio(int postiStdIniziali, int postiDisIniziali)
+
+public SensorInput(boolean sensIn, boolean sensOut, boolean transitoOk,
+                   boolean autoVia, TipoUtente utenteRilevato, boolean pagamentoOk)
+\end{lstlisting}
+
+Se in una chiamata scambio i due \texttt{int}, o due dei quattro \texttt{boolean}, il
+codice compila senza un fiato e il comportamento cambia. È esattamente il tipo di errore
+che la categoria 3 della checklist va a cercare, e che né il compilatore né i contratti
+JML possono intercettare, perché a livello di tipi la chiamata è corretta.
+
+Su \texttt{SensorInput} il problema in pratica non si presenta, perché il costruttore non
+lo chiama mai nessuno direttamente: si passa sempre dai metodi statici
+(\texttt{sensIn()}, \texttt{transito()}, \texttt{pagamento(esito)}\dots), che hanno zero
+o un parametro e un nome che dice cosa fanno. È una protezione che avevo messo per
+comodità di scrittura dei test, e che a posteriori risolve anche questo.
+
+Su \texttt{Parcheggio(int, int)} invece il rischio resta. L'ho lasciato così perché quel
+costruttore lo usano solo i test, dove i valori sono scritti in chiaro riga per riga e un
+eventuale scambio farebbe fallire subito l'assert. In un sistema vero la soluzione
+sarebbe un tipo dedicato per i due contatori, o un costruttore con \emph{builder}.
+
+\paragraph{4. Arrays.}
+Non applicabile: nel progetto non c'è nessun array né nessuna collezione. Lo stato è
+tenuto in due interi e in due enum. Di conseguenza non ci sono errori di indice
+off-by-one né rischi di sforare i limiti.
+
+\paragraph{5. Object Comparison.}
+Tutti i confronti tra enum sono fatti con \texttt{==}, che per gli enum Java è corretto e
+anzi preferibile a \texttt{equals}. Stringhe da confrontare non ce ne sono: le uniche che
+compaiono sono i messaggi passati al display, che vengono solo scritti, mai testati per
+uguaglianza nel codice di produzione.
+
+\paragraph{6. Output Format.}
+I messaggi del display sono coerenti e senza errori di battitura. Due osservazioni
+minori. La prima è che alcune stringhe sono ripetute in più punti (``Sistema pronto''
+compare tre volte, una per ogni ritorno in IDLE): andrebbero in costanti, ma su quattro
+messaggi in croce ho lasciato stare. La seconda è che ``Sbarra aperta'' e ``Sbarra di
+uscita aperta'' sembrano un'incoerenza e invece sono volute, perché distinguono le due
+sbarre.
+
+\paragraph{7. Computation, Comparisons and Assignments.}
+Divisioni non ce ne sono, quindi il problema del denominatore a zero non si pone.
+L'aritmetica è solo somma e sottrazione di 1 sui due contatori, e non può andare in
+overflow perché i contatori sono limitati tra 0 e la capacità massima, cosa garantita in
+tre modi diversi: dall'invariante JML, dai controlli a runtime in \texttt{liberaPosto} e
+dalle CTLSPEC sul modello. Vale la pena dirlo perché l'overflow è il classico punto in
+cui la verifica ESC si inceppa, e qui non succede proprio grazie a quei vincoli.
+
+\paragraph{8. Exceptions.}
+Nel progetto non c'è nemmeno un \texttt{try/catch}. È una scelta: le uniche eccezioni
+lanciate (\texttt{IllegalArgumentException} e \texttt{IllegalStateException}) segnalano
+errori di programmazione, non condizioni che possono capitare a runtime, quindi devono
+propagare e non essere nascoste. Un punto di attenzione però c'è: nei gestori dei bottoni
+della UI Vaadin non c'è nessuna gestione, quindi un'eccezione lì diventerebbe una pagina
+di errore del framework. Per un prototipo va bene, in una versione vera ci vorrebbe un
+messaggio all'utente.
+
+\paragraph{9. Flow of Control.}
+Lo \texttt{switch} di \texttt{step} ha tutti i \texttt{case} chiusi da \texttt{break} e
+un ramo \texttt{default} che lancia eccezione, quindi niente fall-through accidentale.
+Il problema del \emph{dangling else} non si presenta: l'unico punto con due condizioni in
+fila, \texttt{gestisciIdle}, usa un \texttt{if/else if} esplicito. Infine, nel package
+\texttt{core} non c'è \textbf{nessun ciclo}: la FSM avanza di un passo per chiamata e
+l'iterazione, se serve, la fa il chiamante. Questo spiega anche perché nella parte JML
+(Sezione~\ref{sec:jml-ref}) non compare nessuna \texttt{loop\_invariant}: non essendoci
+loop, non c'è niente da invariantizzare.
+
+\subsection{Seconda lettura con un LLM}
+\label{sec:llm-review}
+
+La consegna chiedeva di fare l'ispezione ``con chatgpt o LLM in generale'', quindi dopo
+la checklist ho usato ChatGPT come se fosse un collega a cui far dare una seconda
+occhiata al codice. Gli ho passato tutto il sorgente dei package \texttt{core} e
+\texttt{ui} e gli ho chiesto di leggerlo cercando nomi poco chiari, casi limite non
+gestiti, possibili \texttt{NullPointerException} e punti in cui il codice si allontana
+dal modello ASM.
 
 Le cose che sono uscite non le ho prese per buone così com'erano: le ho valutate una per
 una, decidendo di volta in volta se correggerle, mitigarle o lasciarle stare spiegando
 perché. L'LLM ha segnalato i punti su cui ragionare, le decisioni le ho prese io.
-
-\subsection{Checklist preliminare}
-
-Prima di guardare le segnalazioni ho fatto un giro di controlli di base:
-
-\begin{itemize}
-    \item[$\checkmark$] La funzionalità descritta nei requisiti c'è tutta nel codice.
-    \item[$\checkmark$] Le variabili sono inizializzate prima dell'uso, e i costruttori di \texttt{Parcheggio} validano i parametri.
-    \item[$\checkmark$] Gli enum sono confrontati con \texttt{==}, che per gli enum Java è corretto.
-    \item[$\checkmark$] Lo \texttt{switch} in \texttt{step} ha un ramo \texttt{default} che lancia eccezione se arriva uno stato non gestito.
-    \item[$\checkmark$] Le eccezioni di precondizione sono usate in modo coerente in tutta la classe.
-\end{itemize}
-
-\subsection{Le osservazioni e come le ho gestite}
-\label{sec:llm-review}
 
 \begin{enumerate}
     \item \textbf{Manca il controllo di null su \texttt{utenteRilevato} in CHK\_OUT}: il
@@ -77,13 +167,20 @@ Prima di guardare le segnalazioni ho fatto un giro di controlli di base:
 
 \subsection{Bilancio}
 
-In tutto sono uscite 7 osservazioni. Nessun bug vero da correggere nel codice, e in due
-casi mi è bastato chiarire le cose nel Javadoc. È però saltato fuori un difetto nella
-specifica, quello del punto 6, che né il testing di conformità né la verifica ESC
-riuscivano a vedere: i contratti JML di \texttt{Parcheggio} restano rispettati anche
-nell'esecuzione che rilascia il posto sbagliato, perché il problema sta più in alto, a
-livello di FSM e di modello.
+Fra checklist e LLM sono uscite otto osservazioni. Nessun bug vero da correggere nel
+codice, e in due casi mi è bastato chiarire le cose nel Javadoc.
 
-Per me è la conferma che questi livelli di verifica servono a cose diverse. Il model
+Quello che mi ha colpito è che i due metodi hanno trovato cose diverse. La checklist,
+proprio perché è meccanica e va per categorie, mi ha fatto guardare le \emph{firme} dei
+metodi, che leggendo il codice per capire cosa fa non guardi mai, e da lì è saltato fuori
+il problema dei parametri adiacenti dello stesso tipo. L'LLM, che invece ragiona sul
+significato, ha trovato il difetto della memoria a slot singolo, che una checklist non
+avrebbe mai potuto vedere perché non è una violazione di nessuna regola: è il modello a
+essere incompleto.
+
+E quel difetto, il punto 6, è la cosa più utile emersa da tutto il progetto, perché né il
+testing di conformità né la verifica ESC riuscivano a vederlo. I contratti JML di
+\texttt{Parcheggio} restano rispettati anche nell'esecuzione che rilascia il posto
+sbagliato, dato che il problema sta più in alto, a livello di FSM e di modello. Il model
 checking e l'ESC dimostrano quello che è stato formalizzato; l'ispezione a mano trova
 quello che nella formalizzazione non c'è.

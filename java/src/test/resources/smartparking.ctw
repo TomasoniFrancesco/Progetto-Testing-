@@ -1,0 +1,36 @@
+Model SmartParking
+
+/*
+ * Astrazione per il combinatorial testing di Parcheggio.assegnaPosto().
+ *
+ * I tre parametri di ingresso sono il tipo di utente rilevato dal totem e i due
+ * contatori dei posti liberi, ridotti ai due soli valori che contano davvero:
+ * 0 (esauriti) e 1 (ce n'e' almeno uno).
+ *
+ * Il quarto parametro, esito, e' l'uscita attesa. I vincoli qui sotto sono la
+ * politica di assegnazione della regola r_gestione_VER scritta in forma logica:
+ * legano l'esito ai tre ingressi, quindi ogni combinazione generata da CTWedge
+ * arriva gia' con il risultato corretto e si traduce in un caso di test JUnit
+ * senza doverlo calcolare a mano.
+ */
+
+Parameters:
+    tipoUtente : { STD DISABILE ABBONATO };
+    postiStd   : [ 0 .. 1 ];
+    postiDis   : [ 0 .. 1 ];
+    esito      : { POSTO_STD POSTO_DIS NESSUNO };
+
+Constraints:
+    // STD e ABBONATO: prendono un posto standard se c'e', altrimenti niente.
+    # ( ( tipoUtente = STD || tipoUtente = ABBONATO ) && postiStd > 0 ) => esito = POSTO_STD #
+    # ( ( tipoUtente = STD || tipoUtente = ABBONATO ) && postiStd = 0 ) => esito = NESSUNO #
+
+    // DISABILE: prima il posto riservato...
+    # ( tipoUtente = DISABILE && postiDis > 0 ) => esito = POSTO_DIS #
+    // ...poi il fallback sul posto standard...
+    # ( tipoUtente = DISABILE && postiDis = 0 && postiStd > 0 ) => esito = POSTO_STD #
+    // ...e solo se non c'e' proprio niente, accesso negato.
+    # ( tipoUtente = DISABILE && postiDis = 0 && postiStd = 0 ) => esito = NESSUNO #
+
+    // Un posto riservato non puo' mai finire a un utente non disabile.
+    # ( tipoUtente = STD || tipoUtente = ABBONATO ) => esito != POSTO_DIS #

@@ -112,6 +112,7 @@
                     <excludes>
                         <exclude>it/tvsw/smartparking/ui/**</exclude>
                         <exclude>it/tvsw/smartparking/Application*</exclude>
+                        <exclude>it/tvsw/smartparking/jml/**</exclude>
                     </excludes>
                 </configuration>
                 <executions>
