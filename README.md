@@ -8,7 +8,7 @@ Abstract State Machine (Asmeta), specificato con JML e implementato in Java con
 interfaccia Vaadin.
 
 **📄 La documentazione completa del progetto è il documento unico
-[`docs/latex/main.pdf`](docs/latex/main.pdf) (26 pagine).**
+[`docs/latex/main.pdf`](docs/latex/main.pdf) (32 pagine).**
 
 ## Descrizione
 
@@ -52,7 +52,7 @@ solo dove trovare i file sorgente corrispondenti.
 | 3. JML | 4 | `java/src/main/java/it/tvsw/smartparking/core/Parcheggio.java`, `main.pdf` (Sez. 5) |
 | 4.1 Progetto Maven | incluso in 12 | `java/pom.xml` |
 | 4.2 Implementazione core/FSM | incluso in 12 | `java/src/main/java/it/tvsw/smartparking/core/*` |
-| 4.3 Testing (JUnit, MCDC, coverage) | 5 | `java/src/test/java/it/tvsw/smartparking/core/*Test.java`, `main.pdf` (Sez. 4) |
+| 4.3 Testing (JUnit, MCDC, coverage, mutation) | 5 | `java/src/test/java/it/tvsw/smartparking/core/*Test.java`, `main.pdf` (Sez. 4) |
 | 4.4 Mockito | 1 | `java/src/test/java/it/tvsw/smartparking/core/DisplayMockTest.java` |
 | 4.5 Model Based Testing | 1 | `java/src/test/java/it/tvsw/smartparking/core/ScenarioAvallaTest.java` |
 | 4.6 Combinatorial testing | 2 | `java/src/test/java/it/tvsw/smartparking/core/CombinatorialTest.java` |
@@ -74,17 +74,22 @@ mvn verify
 ```
 
 Report di copertura JaCoCo: `java/target/site/jacoco/index.html`
-(59 test del core + 1 test Selenium; core al 98% instruction / 95%+ branch coverage,
+(59 test del core + 1 test Selenium; core al 98% instruction / 98% branch coverage,
 `Parcheggio` 100%/100%).
 
 ### Mutation testing (PIT)
 
 ```bash
 cd java
-mvn org.pitest:pitest-maven:mutationCoverage
+mvn test-compile org.pitest:pitest-maven:mutationCoverage
 ```
 
-Report: `java/target/pit-reports/index.html`
+Report: `java/target/pit-reports/index.html` (90 mutanti generati, 90 uccisi, mutation
+score 100%).
+
+> Nota: SpotBugs e PIT vanno lanciati con una JDK 17 (la stessa della CI). Su JDK piu'
+> recenti SpotBugs non riesce a leggere il bytecode. Su macOS:
+> `export JAVA_HOME=$(/usr/libexec/java_home -v 17)`
 
 ### Analisi statica (SpotBugs)
 

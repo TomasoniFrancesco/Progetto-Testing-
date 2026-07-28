@@ -175,3 +175,85 @@ Parcheggio 100\%/100\%, enum e SensorInput 100\%, SmartParkingFSM 96\%/96\%.}
 
 \screenshot{jacoco_detail_fsm}{Report JaCoCo -- dettaglio per metodo di SmartParkingFSM}{%
 Tutti i metodi al 100\% tranne step(), per via del default irraggiungibile.}
+
+\subsection{Mutation testing con PIT}
+\label{sec:mutation}
+
+Arrivato al 98\% di copertura mi restava un dubbio: la copertura dice che una riga è
+stata \emph{eseguita} durante i test, non che qualcuno stia davvero \emph{controllando}
+cosa fa. Un test che chiama un metodo e non verifica niente alza la copertura esattamente
+come un test scritto bene.
+
+Il mutation testing serve proprio a distinguere i due casi. PIT prende il bytecode e ci
+introduce piccoli difetti uno alla volta: cambia un \texttt{>} in \texttt{>=}, nega una
+condizione, sostituisce un valore di ritorno, cancella una chiamata a un metodo
+\texttt{void}. Per ogni difetto rilancia i test. Se i test falliscono il mutante è
+\emph{ucciso}, e vuol dire che quella riga è sorvegliata da un assert. Se invece passano
+lo stesso il mutante \emph{sopravvive}, e ho trovato un punto cieco.
+
+Il plugin è configurato nel \texttt{pom.xml} sul solo package \texttt{core}, e si lancia
+così:
+
+\begin{lstlisting}[style=terminal, caption={Esecuzione di PIT}]
+$ mvn test-compile org.pitest:pitest-maven:mutationCoverage
+\end{lstlisting}
+
+Il risultato è che su \textbf{90 mutanti generati ne sono stati uccisi 90}, cioè un
+mutation score del 100\%, con zero mutanti privi di copertura.
+
+\begin{longtable}{@{}p{6.2cm}p{2cm}p{2cm}p{2cm}@{}}
+\toprule
+\textbf{Operatore di mutazione} & \textbf{Generati} & \textbf{Uccisi} & \textbf{\%} \\
+\midrule
+\endhead
+\texttt{NegateConditionals} & 26 & 26 & 100 \\
+\texttt{VoidMethodCall} & 21 & 21 & 100 \\
+\texttt{NullReturnVals} & 15 & 15 & 100 \\
+\texttt{ConditionalsBoundary} & 9 & 9 & 100 \\
+\texttt{BooleanTrueReturnVals} & 5 & 5 & 100 \\
+\texttt{BooleanFalseReturnVals} & 5 & 5 & 100 \\
+\texttt{Math} & 5 & 5 & 100 \\
+\texttt{PrimitiveReturns} & 4 & 4 & 100 \\
+\midrule
+\textbf{Totale} & \textbf{90} & \textbf{90} & \textbf{100} \\
+\bottomrule
+\caption{Mutanti generati da PIT sul package \texttt{core}, per operatore.}
+\label{tab:pit}
+\end{longtable}
+
+Due righe della tabella mi hanno fatto piacere più delle altre, perché ricollegano il
+risultato a lavoro fatto prima.
+
+I 9 mutanti \texttt{ConditionalsBoundary} sono quelli che trasformano \texttt{postiStd >
+0} in \texttt{postiStd >= 0} e simili. Ucciderli tutti vuol dire che i test distinguono
+davvero il caso ``c'è un posto'' dal caso ``non ce n'è'', ed è esattamente quello che
+serviva costruire con la tabella MC/DC: senza quei casi di confine mirati, una mutazione
+sul limite sarebbe passata liscia.
+
+I 21 mutanti \texttt{VoidMethodCall} sono le chiamate a \texttt{display.mostra(\dots)}
+cancellate. Sono metodi che non restituiscono niente, quindi cancellarli non cambia lo
+stato della FSM: un test che guarda solo lo stato finale non se ne accorgerebbe mai.
+Vengono uccisi grazie ai \texttt{verify} di Mockito, che è la conferma che quel pezzo di
+lavoro non era decorativo.
+
+\subsubsection*{Quanto vale davvero questo 100\%}
+
+Un punteggio pieno fa comodo ma va letto per quello che è, altrimenti si finisce per
+raccontarsi che il codice è perfetto.
+
+Primo: il nucleo è piccolo e fatto apposta per essere verificabile. Non ci sono cicli,
+l'aritmetica è solo somma e sottrazione di 1, non ci sono strutture dati. Su un dominio
+del genere il numero di mutanti possibili è basso e coprirli tutti è realistico; su una
+classe con array e cicli sarebbe tutta un'altra storia.
+
+Secondo, e più importante: PIT ha usato il suo insieme di operatori predefinito, quello
+che si vede nella Tabella~\ref{tab:pit}. Attivando gruppi più aggressivi il numero di
+mutanti crescerebbe e qualcuno probabilmente sopravvivrebbe. Quindi il 100\% non
+significa ``nessun difetto possibile sfugge ai miei test'', ma ``nessuno dei difetti di
+questa famiglia sfugge ai miei test''. È una differenza che vale la pena tenere presente,
+perché è la stessa che c'è fra la copertura e il mutation testing, solo spostata di un
+livello.
+
+Detto questo, la cosa che il risultato dimostra sul serio è quella che cercavo: quel 98\%
+di copertura non è gonfiato. Le righe eseguite dai test sono anche righe i cui effetti
+vengono controllati.
