@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/TomasoniFrancesco/Progetto-Testing-/actions/workflows/ci.yml/badge.svg)
 
-Progetto individuale per il corso di Testing e Verifica del Software (TVSW):
+Progetto per il corso di Testing e Verifica del Software (TVSW):
 sistema di gestione di un parcheggio intelligente (SmartParking), modellato in
 Abstract State Machine (Asmeta), specificato con JML e implementato in Java con
 interfaccia Vaadin.
