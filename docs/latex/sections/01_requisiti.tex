@@ -6,29 +6,24 @@ SmartParking è un parcheggio automatico. Ci sono due sbarre, una in ingresso e 
 uscita, dei sensori che si accorgono quando arriva un'auto e un totem che legge che tipo
 di utente è. I posti sono di due tipi: standard e riservati ai disabili. Nel modello ne
 ho messo uno solo per tipo, altrimenti il model checker dopo esplode.
-
+\\ \\
 Gli utenti sono tre:
 
 \begin{itemize}
-\item \textbf{STD}: l'utente occasionale, è l'unico che paga;
+\item \textbf{STD}: l'utente standard, è l'unico che paga;
 \item \textbf{DISABILE}: ha il permesso, non paga e ha la precedenza sui posti riservati;
 \item \textbf{ABBONATO}: ha l'abbonamento mensile e non paga.
 \end{itemize}
 
 Quando arriva un'auto il sistema la rileva, guarda che utente è e controlla se c'è un
 posto adatto. Se c'è alza la sbarra, se non c'è nega l'accesso.
-
+\\
 Il caso un po' più interessante è quello del disabile. Lui i posti riservati li prende
 per primo, ma se sono finiti il sistema non lo respinge: gli dà un posto standard, se ce
-n'è uno libero. Questo è il \emph{fallback}, e torna spesso nel resto del documento
-perché è il ramo che ha richiesto più attenzione un po' ovunque. Solo se sono finiti
-anche i posti standard viene negato l'accesso anche a lui.
-
+n'è uno libero. Questo è il \emph{fallback}. Solo se sono finiti anche i posti standard
+viene negato l'accesso anche a lui.
+\\
 In uscita paga solo l'utente STD, gli altri due escono e basta.
-
-Il giro è questo: prima il comportamento come macchina a stati in Asmeta, poi la
-validazione con gli scenari Avalla e il model checking, e infine l'implementazione in
-Java con i contratti JML sul nucleo.
 
 \subsection{Requisiti funzionali}
 
@@ -61,10 +56,54 @@ RF14 & Mantenere in memoria il tipo di posto occupato dall'ingresso fino all'usc
 \textbf{ID} & \textbf{Descrizione} \\
 \midrule
 \endhead
-RNF1 & \textbf{Sicurezza dei contatori}: \texttt{posti\_std} e \texttt{posti\_dis} non devono mai essere negativi né superare la capacità iniziale, in ogni stato raggiungibile (verificato via model checking). \\
+RNF1 & \textbf{Sicurezza dei contatori}: \texttt{posti\_std} e \texttt{posti\_dis} non devono mai essere negativi né superare la capacità iniziale, in ogni stato raggiungibile. \\
 RNF2 & \textbf{Determinismo}: a parità di stato e input monitorati, il sistema produce sempre lo stesso stato successivo. \\
 RNF3 & \textbf{Assenza di stati bloccanti}: da ogni stato transitorio esiste sempre un cammino che riporta il sistema in IDLE. \\
 \bottomrule
+\end{longtable}
+
+Tutti e tre sono stati verificati formalmente, e vale la pena dire con cosa. RNF1 è
+esattamente il contenuto delle CTLSPEC da 1 a 6 sul modello e delle due invarianti di
+classe JML su \texttt{Parcheggio}: la stessa proprietà dimostrata due volte, una sul
+modello astratto e una sul codice.
+
+RNF2 merita una precisazione, perché la regola di assegnazione usa un \texttt{choose},
+che è un costrutto non deterministico. Il determinismo non viene meno: come spiegato in
+Sezione~\ref{sec:modello}, l'insieme fra cui il \texttt{choose} sceglie contiene sempre
+al massimo un elemento, quindi lo stato successivo resta univoco.
+
+RNF3 corrisponde alla CTLSPEC~8, \texttt{ag(stato=TARIF implies ef(stato=IDLE))}, che
+risulta vera. È importante che sia formulato con ``esiste un cammino'' e non ``su tutti i
+cammini'': la versione forte è la CTLSPEC~10, con \texttt{af} al posto di \texttt{ef}, ed
+è \emph{falsa}, perché un utente che non paga mai resta in TARIF per sempre. Il requisito
+è scritto nella forma debole apposta.
+
+\subsection{Tracciabilità}
+
+Ogni requisito funzionale è verificato ad almeno due livelli, sul modello astratto e sul
+codice. La tabella mette in fila chi controlla cosa.
+
+\begin{longtable}{@{}p{1.3cm}p{5.2cm}p{6cm}@{}}
+\toprule
+\textbf{ID} & \textbf{Verifica sul modello} & \textbf{Verifica sul codice} \\
+\midrule
+\endhead
+RF1--RF2 & \texttt{test\_abbonato}, \texttt{test\_disabile} & \texttt{SmartParkingFSMTest} (transizioni IDLE$\to$CHK\_IN$\to$VER) \\
+RF3 & \texttt{test\_abbonato}, \texttt{test\_pieno} & \texttt{ParcheggioTest}, \texttt{McdcVerificaTest} (decisione 1) \\
+RF4 & \texttt{test\_disabile} & \texttt{ParcheggioTest}, riga 3 della tabella pairwise \\
+RF5 & \texttt{test\_disabile\_fallback} & \texttt{McdcVerificaTest} (decisione 2), riga 4 pairwise \\
+RF6 & \texttt{test\_pieno\_totale}, CTLSPEC~9 & \texttt{DisplayMockTest}, riga 1 pairwise \\
+RF7 & \texttt{test\_pieno} & \texttt{SmartParkingFSMTest} (self-loop di NEG) \\
+RF8 & \texttt{test\_abbonato}, CTLSPEC~3 e~6 & \texttt{SmartParkingFSMTest}, \texttt{ScenarioAvallaTest} \\
+RF9 & \texttt{test\_pagamento\_std} & \texttt{SmartParkingFSMTest} \\
+RF10 & \texttt{test\_pagamento\_std}, CTLSPEC~7 & \texttt{SmartParkingFSMTest} \\
+RF11 & \texttt{test\_abbonato}, \texttt{test\_disabile} & \texttt{SmartParkingFSMTest} \\
+RF12 & \texttt{test\_pagamento\_std} & \texttt{SmartParkingFSMTest} (self-loop di TARIF) \\
+RF13 & \texttt{test\_disabile}, CTLSPEC~4 e~5 & \texttt{ParcheggioTest} (\texttt{liberaPosto}) \\
+RF14 & \texttt{test\_disabile} & \texttt{SmartParkingFSMTest} \\
+\bottomrule
+\caption{Tracciabilità dei requisiti funzionali verso scenari, proprietà temporali e test.}
+\label{tab:tracciabilita}
 \end{longtable}
 
 \subsection{Macchina a stati}
@@ -72,60 +111,14 @@ RNF3 & \textbf{Assenza di stati bloccanti}: da ogni stato transitorio esiste sem
 Qui sotto ci sono gli 8 stati del modello e le transizioni che li collegano. Il giro
 sopra è quello di ingresso, quello sotto l'uscita, e da IDLE si parte sempre.
 
-\begin{figure}[h!]
-\centering
-\begin{tikzpicture}[
-    >=stealth, auto, scale=1.0, every node/.style={transform shape},
-    state/.style={rectangle, rounded corners, draw=black, thick, minimum width=2.1cm, minimum height=0.9cm, fill=blue!8, font=\small}
-]
-% --- Nodi su griglia esplicita (x,y) per evitare sovrapposizioni ---
-\node[state] (idle)    at (0,2)    {IDLE};
-\node[state] (neg)     at (4,4.3)  {NEG};
-\node[state] (chkin)   at (4,2)    {CHK\_IN};
-\node[state] (ver)     at (7.2,2)  {VER};
-\node[state] (ingr)    at (10.5,2) {INGR};
-\node[state] (chkout)  at (4,-0.3) {CHK\_OUT};
-\node[state] (tarif)   at (7.2,-0.3) {TARIF};
-\node[state] (usc)     at (10.5,-0.3) {USC};
-
-% --- Flusso di ingresso (riga superiore) ---
-\draw[->] (idle) -- node[above]{\scriptsize sens\_in} (chkin);
-\draw[->] (chkin) -- (ver);
-\draw[->] (ver) -- node[right]{\scriptsize no posto} (neg);
-\draw[->] (ver) -- node[above]{\scriptsize posto ok} (ingr);
-\draw[->] (neg) edge[loop above] node{\scriptsize auto\_via=false} (neg);
-\draw[->] (ingr) edge[loop above] node{\scriptsize transito\_ok=false} (ingr);
-
-% --- Flusso di uscita (riga inferiore) ---
-\draw[->] (idle) -- node[left]{\scriptsize sens\_out} (chkout);
-\draw[->] (chkout) -- node[above]{\scriptsize STD} (tarif);
-\draw[->] (chkout) to[bend right=15] node[below]{\scriptsize DIS/ABB} (usc);
-\draw[->] (tarif) edge[loop below] node{\scriptsize pagamento\_ok=false} (tarif);
-\draw[->] (tarif) -- node[above]{\scriptsize pagamento\_ok} (usc);
-\draw[->] (usc) edge[loop below] node{\scriptsize transito\_ok=false} (usc);
-
-% --- Ritorni verso IDLE (curve ampie per non incrociare i nodi) ---
-\draw[->] (neg) to[bend left=35] node[above, sloped]{\scriptsize auto\_via} (idle);
-\draw[->] (ingr) to[bend left=55] node[above, sloped]{\scriptsize transito\_ok} (idle);
-\draw[->] (usc) to[bend right=55] node[below, sloped]{\scriptsize transito\_ok} (idle);
-\end{tikzpicture}
-\caption{Diagramma della macchina a stati SmartParking (8 stati).}
-\label{fig:fsm-diagram}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/ASM.drawio.png}
+    \caption{Macchina a stati di SmartParking: gli 8 stati e le transizioni, con il ciclo
+    di ingresso (CHK\_IN, VER, INGR oppure NEG) e quello di uscita (CHK\_OUT, TARIF, USC).}
+    \label{fig:fsm}
 \end{figure}
 
-\subsection{Glossario}
 
-\begin{longtable}{@{}p{4cm}p{7.5cm}@{}}
-\toprule
-\textbf{Termine} & \textbf{Significato} \\
-\midrule
-\endhead
-Sensore di ingresso/uscita & Rileva la presenza di un veicolo davanti a una sbarra. \\
-Sbarra & Barriera fisica aperta solo in INGR/USC quando \texttt{transito\_ok=true}. \\
-Transito & Il veicolo è passato fisicamente sotto la sbarra aperta. \\
-Tipo utente & Categoria del veicolo: STD, DISABILE o ABBONATO. \\
-Posto standard / disabile & Le due categorie di posto auto. \\
-Fallback & Politica per cui un DISABILE senza posti riservati riceve un posto standard. \\
-Tariffa (TARIF) & Fase di pagamento, obbligatoria solo per STD in uscita. \\
-\bottomrule
-\end{longtable}
+
+\newpage

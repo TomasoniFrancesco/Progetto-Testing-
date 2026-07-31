@@ -12,12 +12,6 @@ una classe che si tira dietro mezzo Spring non ci sarei mai arrivato.
 Tutto il resto del sistema (la FSM, la UI, il display, i sensori) è Java normale senza
 annotazioni, come chiedeva la consegna.
 
-Una cosa scoperta sbattendoci contro: i campi \texttt{postiStd} e \texttt{postiDis}
-vanno dichiarati \texttt{private /*@ spec\_public @*/}. Le
-clausole di specifica public, come le invarianti e le postcondizioni, possono nominare
-solo roba visibile a livello public, e se i campi restano semplicemente private OpenJML
-si ferma con un errore di visibilità. Con \texttt{spec\_public} restano private per il
-codice ma diventano visibili alla specifica.
 
 \subsection{Invarianti}
 
@@ -142,83 +136,134 @@ public /*@ pure @*/ int getPostiDis() { ... }
 
 \subsection{Verifica dei contratti con OpenJML (ESC)}
 
-La verifica dei contratti è stata fatta con OpenJML (release 21.0.27, build nativa per
-macOS arm64) in modalità \texttt{--esc}. Quello che fa il tool è tradurre codice e
-contratti in formule logiche e passarle al solver Z3, che deve dimostrare che
+La verifica dei contratti è stata fatta con il plugin OpenJML per Eclipse
+(build \texttt{0.8.59-20211116}, quella distribuita nel toolkit del corso), lanciando il
+comando \emph{Static Checks (ESC)} sulla classe \texttt{Parcheggio} e usando \texttt{z3\_4\_3}
+come solver. Quello che fa il tool è tradurre codice e
+contratti in formule logiche e passarle a Z3, che deve dimostrare che
 \emph{qualunque} esecuzione rispetta postcondizioni e invarianti. È una cosa diversa dai
 test: i test provano alcuni casi, qui invece o si dimostra per tutti o non si dimostra.
+\\ \\
+L'esito compare in due posti. Nella vista \emph{Static Checks} ogni metodo è marcato
+\texttt{[VALID]} o \texttt{[INVALID]}, con accanto il tempo di prova e il solver usato;
+nella \emph{JML Console} scorre il dettaglio, un \emph{feasibility check} alla volta, e in
+fondo il riepilogo con il conteggio per categoria.
 
-Il comando, dalla root del progetto, è questo:
+\subsubsection{Prima esecuzione: cinque metodi su sei}
 
-\begin{lstlisting}[style=terminal, caption={Comando di verifica ESC}]
-$ openjml --esc --progress \
-    -cp java/src/main/java \
-    java/src/main/java/it/tvsw/smartparking/core/Parcheggio.java
-\end{lstlisting}
+Al primo lancio la verifica non chiude. Cinque metodi risultano VALID, ma
+\texttt{liberaPosto} è marcato \texttt{[INVALID]} in rosso, e sotto di esso compaiono due
+nodi \texttt{CE\#1} e \texttt{CE\#2}: sono i due controesempi che il solver ha costruito
+per dimostrare che il contratto, così com'è scritto, non regge. Il riepilogo dice
+\texttt{Valid: 5 / Invalid: 1} e, soprattutto, \texttt{Classes: 0 proved of 1}: basta un
+metodo non dimostrato perché l'intera classe risulti non verificata.
 
-\subsubsection*{Un contratto che all'inizio non chiudeva}
+\screenshot{openjml_esc_invalid}{Prima esecuzione: \texttt{liberaPosto} non dimostrabile}{%
+Vista Static Checks con \texttt{liberaPosto} marcato INVALID e i due controesempi
+CE\#1 e CE\#2; gli altri cinque metodi sono già VALID.}
 
-Arrivare a ``tutti Verified'' non è stato immediato, e il caso di \texttt{liberaPosto}
-secondo me è quello che spiega meglio come funziona la cosa.
-
-La prima versione era questa, con la postcondizione che descrive l'incremento ma senza
-il \texttt{requires} sulla capacità:
+La versione sotto esame era questa: la postcondizione descrive l'incremento, ma niente
+dice al solver da quale valore si parte.
 
 \begin{lstlisting}[style=terminal, caption={Prima versione di liberaPosto (senza il requires di capacità)}]
 //@ requires posto != null;
 //@ ensures posto == TipoPosto.POSTO_STD ==>
 //@     postiStd == \old(postiStd) + 1 && postiDis == \old(postiDis);
-public void liberaPosto(TipoPosto posto) { ... }
+//@ ensures posto == TipoPosto.POSTO_DIS ==>
+//@     postiDis == \old(postiDis) + 1 && postiStd == \old(postiStd);
+public void liberaPosto(TipoPosto posto) {
+    if (posto == TipoPosto.POSTO_STD) {
+        postiStd = postiStd + 1;
+    } else if (posto == TipoPosto.POSTO_DIS) {
+        postiDis = postiDis + 1;
+    }
+}
 \end{lstlisting}
 
-Il solver, non avendo nessun vincolo sul valore di partenza, prova anche il caso
-\texttt{postiStd == MAX\_STD}. Lì \texttt{postiStd + 1} fa \texttt{MAX\_STD + 1}, che
-viola l'invariante di classe. Quindi non riesce a ristabilire l'invariante all'uscita del
-metodo e risponde così:
+\subsubsection{Perché è invalido: lettura del controesempio}
 
-\begin{lstlisting}[style=terminal, caption={Errore ESC sulla prima versione}]
-Parcheggio.java:.. warning: The prover cannot establish an assertion
-   (InvariantExit) in method liberaPosto
-   postiStd == \old(postiStd) + 1 ...
-   Associated declaration: invariant 0 <= postiStd && postiStd <= MAX_STD
+Il vantaggio dell'ESC rispetto a un test che fallisce è che qui non si ottiene solo un
+``no'': si ottiene l'esecuzione precisa che rompe il contratto. La traccia completa è
+lunga qualche centinaio di righe, ma la maggior parte riguarda le strutture interne
+dell'enum \texttt{TipoPosto} (i vari \texttt{\_JMLvalues}, \texttt{charArray}) e non dice
+niente di interessante. La parte che conta sono le ultime righe di \texttt{CE\#1}:
+
+\begin{lstlisting}[style=terminal, caption={Estratto di CE\#1: il ramo del posto disabile}]
+Parcheggio.java:112:  requires posto != null;
+   VALUE: posto != null === true
+Parcheggio.java:  if (posto == TipoPosto.POSTO_STD) ...
+   Condition = false
+Parcheggio.java:  if (posto == TipoPosto.POSTO_DIS) ...
+   Condition = true
+Parcheggio.java:116:  postiDis = postiDis + 1
+   VALUE: postiDis === 1
+   VALUE: postiDis + 1 === 2
+Parcheggio.java:35:  //@ public invariant 0 <= postiDis && postiDis <= MAX_DIS;
+   VALUE: postiDis === 2
+   VALUE: MAX_DIS === 1
+   VALUE: postiDis <= MAX_DIS === false
+Parcheggio.java:112: Invalid assertion (InvariantExit)
+                   : Parcheggio.java:35: Associated location
 \end{lstlisting}
 
-La soluzione è rafforzare la precondizione, in modo che sia chi chiama a garantire che
-c'è spazio per incrementare:
+Si legge come una sceneggiatura. La precondizione è soddisfatta
+(\texttt{posto != null}), l'esecuzione entra nel ramo del posto disabile, il contatore
+parte da 1 e diventa 2. A quel punto il tool ricontrolla l'invariante di classe e trova
+\texttt{2 <= 1} falso: l'assertion che salta si chiama \texttt{InvariantExit}, cioè
+``invariante all'uscita del metodo'', e la \emph{associated location} indica la riga 35,
+dove l'invariante è dichiarata.
+\\ \\
+Il punto è che il solver non ha nessun motivo per escludere il caso
+\texttt{postiDis == MAX\_DIS}. Nessuno glielo ha vietato, quindi lo prova, e trova la
+crepa. \texttt{CE\#2} è la stessa identica storia sull'altro ramo, con \texttt{postiStd}
+che passa da 1 a 2: due controesempi perché i rami con un incremento sono due.
+
+\subsubsection{La correzione e la seconda esecuzione}
+
+Il codice non è sbagliato, è il contratto a essere incompleto: manca l'ipotesi che il
+posto da liberare fosse davvero occupato. La si aggiunge come precondizione, spostando
+l'onere su chi chiama:
 
 \begin{lstlisting}[style=terminal, caption={Versione corretta: il requires di capacità chiude la prova}]
 //@ requires posto == TipoPosto.POSTO_STD ==> postiStd < MAX_STD;
 //@ requires posto == TipoPosto.POSTO_DIS ==> postiDis < MAX_DIS;
 \end{lstlisting}
 
-Con \texttt{postiStd < MAX\_STD} assunto all'ingresso, dopo l'incremento vale
-\texttt{postiStd <= MAX\_STD}, l'invariante regge e il metodo passa a Verified.
+Con \texttt{postiDis < MAX\_DIS} assunto all'ingresso, dopo l'incremento vale
+\texttt{postiDis <= MAX\_DIS}: l'esecuzione di \texttt{CE\#1} non è più ammessa e
+l'invariante regge. Nel codice ho aggiunto anche una guardia esplicita che solleva
+\texttt{IllegalStateException}, perché la precondizione vincola solo chi rispetta il
+contratto, mentre a runtime un chiamante distratto deve comunque essere fermato.
 
-Il senso della cosa, secondo me, è questo: ogni volta che c'è un'operazione aritmetica
-bisogna aver vincolato prima tutto quello che ci entra, con un \texttt{requires} o con
-un'invariante. \texttt{Parcheggio} chiude tutto perché ha due soli interi e tutti e due
-sono limitati; su un nucleo con array o contatori liberi la stessa cosa diventa molto più
-difficile. L'altro ostacolo era di tutt'altro tipo, cioè la visibilità dei campi
-private, risolto con \texttt{spec\_public} come detto all'inizio.
+Rilanciando l'ESC, tutti e sei i metodi (i due costruttori, \texttt{assegnaPosto},
+\texttt{liberaPosto} e i due getter) passano a VALID.
 
-\screenshot{openjml_esc_output}{Output di \texttt{openjml --esc}: tutti i metodi Verified}{%
-Esito Verified per tutti e sei i metodi di Parcheggio, senza righe ``cannot be proved''.}
+\screenshot{openjml_esc_output}{Seconda esecuzione: tutti i metodi VALID}{%
+Vista Static Checks con i sei metodi di Parcheggio marcati VALID, senza più nodi CE.}
 
-Alla fine tutti e sei i metodi (i due costruttori, \texttt{assegnaPosto},
-\texttt{liberaPosto} e i due getter) risultano Verified.
+Il riepilogo della JML Console lo conferma: \texttt{Valid: 6}, con \texttt{Invalid},
+\texttt{Infeasible}, \texttt{Timeout}, \texttt{Error} e \texttt{Skipped} tutti a zero, e
+la classe che passa da \texttt{0 proved of 1} a \texttt{1 proved of 1}.
+
+\screenshot{openjml_esc_summary}{JML Console: riepilogo della verifica}{%
+Dettaglio dei feasibility check metodo per metodo e riepilogo finale con Valid: 6 e
+tutte le altre categorie a zero.}
+
 
 \subsection{Verifica dinamica: i contratti a runtime (RAC)}
 \label{sec:jml-rac}
 
-Vedere scritto ``Verified'' per tutti i metodi è comodo, ma da solo non mi diceva se i
+Vedere sei righe verdi ``VALID'' è comodo, ma da solo non mi diceva se i
 contratti stessero davvero controllando qualcosa o se fossero solo scritti bene. È lo
 stesso dubbio che mi era venuto con la pipeline verde della CI: passa, ma se rompo
 qualcosa se ne accorge?
 
-Per togliermelo ho usato OpenJML nell'altra modalità, \texttt{--rac} (Runtime Assertion
-Checking). Qui il tool non dimostra niente in anticipo: infila i controlli dentro il
-bytecode, e i contratti vengono verificati mentre il programma gira. Se una clausola
-salta, l'esecuzione si ferma dicendo quale.
+Per togliermelo ho usato l'altra modalità del plugin, il \emph{RAC} (Runtime Assertion
+Checking), che si lancia dallo stesso menu dell'ESC. Qui il tool non dimostra niente in
+anticipo: ricompila le classi infilando i controlli dentro il bytecode -- nella JML
+Console si vedono scorrere le righe \texttt{RAC-Compiling} per \texttt{Parcheggio},
+\texttt{TipoUtente} e \texttt{TipoPosto} -- e i contratti vengono poi verificati mentre il
+programma gira. Se una clausola salta, l'esecuzione si ferma dicendo quale.
 
 Il programma di prova è \texttt{DemoRac} (package \texttt{it.tvsw.smartparking.jml}), che
 serve solo a questo e non viene chiamato né dalla FSM né dalla UI. Fa tre cose in fila:
@@ -235,21 +280,24 @@ Parcheggio q = new Parcheggio();
 q.liberaPosto(TipoPosto.POSTO_STD);
 \end{lstlisting}
 
-I comandi per compilare ed eseguire sono questi:
-
-\begin{lstlisting}[style=terminal, caption={Compilazione ed esecuzione con RAC}]
-$ openjml --rac -d out \
-    java/src/main/java/it/tvsw/smartparking/core/*.java \
-    java/src/main/java/it/tvsw/smartparking/jml/DemoRac.java
-
-$ java -cp out:$OPENJML_HOME/jmlruntime.jar \
-    it.tvsw.smartparking.jml.DemoRac
-\end{lstlisting}
+Il procedimento è in due passi: prima si lancia il RAC sulla classe da strumentare, e il
+plugin ricompila \texttt{Parcheggio} con i controlli dentro; poi si esegue
+\texttt{DemoRac} come una normale applicazione Java, avendo cura che il classpath punti
+alle classi strumentate e includa il runtime JML del plugin
+(\texttt{jmlruntime.jar}) invece dei \texttt{.class} prodotti dal compilatore
+di Eclipse.
 
 La seconda violazione è quella che mi interessava di più, perché è esattamente il caso
 che aveva fatto fallire la prova ESC prima che aggiungessi il \texttt{requires} sulla
 capacità. Prima quel caso era un buco nella specifica e il solver me lo segnalava come
-``cannot establish InvariantExit''; adesso che il \texttt{requires} c'è, lo stesso caso
-diventa una precondizione violata dal chiamante, e a runtime si vede subito. Le due
-modalità guardano lo stesso identico punto da due lati: ESC dice ``non riesco a
-dimostrare che vale sempre'', RAC dice ``ecco l'esecuzione in cui non vale''.
+\texttt{Invalid assertion (InvariantExit)}; adesso che il \texttt{requires} c'è, lo stesso
+caso diventa una precondizione violata dal chiamante, e a runtime si vede subito.
+\\ \\
+Le due modalità guardano lo stesso identico punto da due lati, ed è questa la ragione per
+cui ho voluto provarle entrambe. L'ESC ragiona su \emph{tutte} le esecuzioni possibili e
+quando fallisce dice ``non riesco a dimostrare che questa proprietà valga sempre'',
+consegnandoti un controesempio costruito dal solver. Il RAC non dimostra nulla, ma
+sull'esecuzione che gli dai in pasto ti dice ``ecco, qui adesso non vale''. Il primo è
+esaustivo ma astratto, il secondo è concreto ma limitato a ciò che esegui davvero: presi
+insieme confermano che i contratti non sono decorativi, perché lo stesso vincolo che il
+solver usa per chiudere la prova è quello che a runtime ferma il programma.

@@ -28,8 +28,16 @@ signature:
 	// vero quando NESSUN tipo di utente puo' piu' entrare (parcheggio saturo)
 	derived parcheggioPieno: Boolean
 
+	//  FUNZIONE STATICA (n-aria): capacita' massima per tipo di posto.
+	static capacita: TipoPosto -> Integer
+
 definitions:
-	//  DEFINIZIONE FUNZIONI DERIVATE 
+	//  DEFINIZIONE FUNZIONE STATICA
+	// Un posto per tipo; NESSUNO non e' un posto vero, quindi capacita' 0.
+	function capacita($p in TipoPosto) =
+		if $p = NESSUNO then 0 else 1 endif
+
+	//  DEFINIZIONE FUNZIONI DERIVATE
 	// POSTO_STD: assegnabile a chiunque se ci sono posti standard liberi.
 	// POSTO_DIS: riservato ai DISABILI, se ci sono posti disabili liberi.
 	function assegnabile($u in TipoUtente, $p in TipoPosto) =
@@ -68,14 +76,15 @@ definitions:
 					posto_assegnato := POSTO_DIS
 				endpar
 			else
-				if assegnabile($u, POSTO_STD) then
+				// qui POSTO_DIS non e' assegnabile, quindi l'insieme dei candidati
+				// vale {POSTO_STD} oppure e' vuoto: la scelta resta deterministica
+				choose $p in TipoPosto with assegnabile($u, $p) do
 					par
 						stato := INGR
-						posto_assegnato := POSTO_STD
+						posto_assegnato := $p
 					endpar
-				else
+				ifnone
 					stato := NEG
-				endif
 			endif
 		endlet
 
@@ -144,9 +153,10 @@ definitions:
 	//  STATO INIZIALE 
 	default init s0:
 		function stato = IDLE
-		// Partiamo con un parcheggio piccolo per non far esplodere il Model Checker dopo
-		function posti_std = 1
-		function posti_dis = 1
+		// Partiamo con un parcheggio piccolo per non far esplodere il Model Checker
+		// dopo: le capacita' stanno nella funzione statica capacita()
+		function posti_std = capacita(POSTO_STD)
+		function posti_dis = capacita(POSTO_DIS)
 		function posto_assegnato = NESSUNO
 		
 		

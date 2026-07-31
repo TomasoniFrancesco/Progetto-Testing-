@@ -1,128 +1,23 @@
 \section{Ispezione del codice e analisi statica}
 \label{sec:analisi-statica}
 
-Questa parte l'ho affrontata in tre passaggi diversi, perché ognuno trova cose che gli
-altri due si perdono: prima l'ispezione manuale con la checklist vista a lezione, poi
-una seconda lettura fatta fare a un LLM, e infine l'analisi automatica con SpotBugs.
-
-\subsection{Ispezione con la checklist}
-\label{sec:checklist}
-
-La prima passata l'ho fatta con la checklist di code inspection del corso, andando in
-ordine sulle nove categorie. Sotto riporto per ognuna cosa è venuto fuori. Alcune voci
-sul mio codice non si applicano proprio, e lo dico invece di spuntarle a vuoto.
-
-\paragraph{1. Specification / Design.}
-La funzionalità descritta nei requisiti c'è tutta: ogni requisito da RF1 a RF14 ha il
-suo corrispettivo in \texttt{SmartParkingFSM} o in \texttt{Parcheggio}. Di funzionalità
-in più rispetto alla specifica non ne ho trovate: i due metodi che sembravano candidati,
-\texttt{SensorInput.nessunEvento()} e il costruttore \texttt{SmartParkingFSM(Display)},
-sono entrambi usati dai test, il primo per provare i self-loop (uno step senza nessun
-sensore attivo) e il secondo per costruire la FSM con il parcheggio di default.
-
-\paragraph{2. Initialization and Declarations.}
-Tutti i campi sono inizializzati nel costruttore, e quelli che non cambiano mai
-(\texttt{parcheggio}, \texttt{display}, tutti i campi di \texttt{SensorInput}) sono
-\texttt{final}. I tipi sono quelli giusti: gli stati e i tipi di utente sono enum e non
-interi o stringhe, quindi un valore fuori dominio non è nemmeno rappresentabile. Tutti i
-campi sono \texttt{private}, e \texttt{SensorInput} è dichiarata \texttt{final} e
-immutabile.
-
-\paragraph{3. Method Calls.}
-Qui è uscita la segnalazione più concreta di tutta la checklist, e non l'aveva vista
-nessun altro controllo. Ci sono due firme con \textbf{parametri adiacenti dello stesso
-tipo}:
-
-\begin{lstlisting}[language=Java, caption={Firme con parametri adiacenti dello stesso tipo}]
-public Parcheggio(int postiStdIniziali, int postiDisIniziali)
-
-public SensorInput(boolean sensIn, boolean sensOut, boolean transitoOk,
-                   boolean autoVia, TipoUtente utenteRilevato, boolean pagamentoOk)
-\end{lstlisting}
-
-Se in una chiamata scambio i due \texttt{int}, o due dei quattro \texttt{boolean}, il
-codice compila senza un fiato e il comportamento cambia. È esattamente il tipo di errore
-che la categoria 3 della checklist va a cercare, e che né il compilatore né i contratti
-JML possono intercettare, perché a livello di tipi la chiamata è corretta.
-
-Su \texttt{SensorInput} il problema in pratica non si presenta, perché il costruttore non
-lo chiama mai nessuno direttamente: si passa sempre dai metodi statici
-(\texttt{sensIn()}, \texttt{transito()}, \texttt{pagamento(esito)}\dots), che hanno zero
-o un parametro e un nome che dice cosa fanno. È una protezione che avevo messo per
-comodità di scrittura dei test, e che a posteriori risolve anche questo.
-
-Su \texttt{Parcheggio(int, int)} invece il rischio resta. L'ho lasciato così perché quel
-costruttore lo usano solo i test, dove i valori sono scritti in chiaro riga per riga e un
-eventuale scambio farebbe fallire subito l'assert. In un sistema vero la soluzione
-sarebbe un tipo dedicato per i due contatori, o un costruttore con \emph{builder}.
-
-\paragraph{4. Arrays.}
-Non applicabile: nel progetto non c'è nessun array né nessuna collezione. Lo stato è
-tenuto in due interi e in due enum. Di conseguenza non ci sono errori di indice
-off-by-one né rischi di sforare i limiti.
-
-\paragraph{5. Object Comparison.}
-Tutti i confronti tra enum sono fatti con \texttt{==}, che per gli enum Java è corretto e
-anzi preferibile a \texttt{equals}. Stringhe da confrontare non ce ne sono: le uniche che
-compaiono sono i messaggi passati al display, che vengono solo scritti, mai testati per
-uguaglianza nel codice di produzione.
-
-\paragraph{6. Output Format.}
-I messaggi del display sono coerenti e senza errori di battitura. Due osservazioni
-minori. La prima è che alcune stringhe sono ripetute in più punti (``Sistema pronto''
-compare tre volte, una per ogni ritorno in IDLE): andrebbero in costanti, ma su quattro
-messaggi in croce ho lasciato stare. La seconda è che ``Sbarra aperta'' e ``Sbarra di
-uscita aperta'' sembrano un'incoerenza e invece sono volute, perché distinguono le due
-sbarre.
-
-\paragraph{7. Computation, Comparisons and Assignments.}
-Divisioni non ce ne sono, quindi il problema del denominatore a zero non si pone.
-L'aritmetica è solo somma e sottrazione di 1 sui due contatori, e non può andare in
-overflow perché i contatori sono limitati tra 0 e la capacità massima, cosa garantita in
-tre modi diversi: dall'invariante JML, dai controlli a runtime in \texttt{liberaPosto} e
-dalle CTLSPEC sul modello. Vale la pena dirlo perché l'overflow è il classico punto in
-cui la verifica ESC si inceppa, e qui non succede proprio grazie a quei vincoli.
-
-\paragraph{8. Exceptions.}
-Nel progetto non c'è nemmeno un \texttt{try/catch}. È una scelta: le uniche eccezioni
-lanciate (\texttt{IllegalArgumentException} e \texttt{IllegalStateException}) segnalano
-errori di programmazione, non condizioni che possono capitare a runtime, quindi devono
-propagare e non essere nascoste. Un punto di attenzione però c'è: nei gestori dei bottoni
-della UI Vaadin non c'è nessuna gestione, quindi un'eccezione lì diventerebbe una pagina
-di errore del framework. Per un prototipo va bene, in una versione vera ci vorrebbe un
-messaggio all'utente.
-
-\paragraph{9. Flow of Control.}
-Lo \texttt{switch} di \texttt{step} ha tutti i \texttt{case} chiusi da \texttt{break} e
-un ramo \texttt{default} che lancia eccezione, quindi niente fall-through accidentale.
-Il problema del \emph{dangling else} non si presenta: l'unico punto con due condizioni in
-fila, \texttt{gestisciIdle}, usa un \texttt{if/else if} esplicito. Infine, nel package
-\texttt{core} non c'è \textbf{nessun ciclo}: la FSM avanza di un passo per chiamata e
-l'iterazione, se serve, la fa il chiamante. Questo spiega anche perché nella parte JML
-(Sezione~\ref{sec:jml-ref}) non compare nessuna \texttt{loop\_invariant}: non essendoci
-loop, non c'è niente da invariantizzare.
+Il codice è passato sotto tre filtri diversi: la checklist di code inspection vista a
+lezione, una seconda lettura fatta fare a un LLM e l'analisi automatica con SpotBugs. La
+parte che ha reso di più, e a cui dedico questa sezione, è la seconda.
 
 \subsection{Seconda lettura con un LLM}
 \label{sec:llm-review}
 
-La consegna chiedeva di fare l'ispezione ``con chatgpt o LLM in generale'', quindi dopo
-la checklist ho usato ChatGPT come se fosse un collega a cui far dare una seconda
-occhiata al codice. Gli ho passato tutto il sorgente dei package \texttt{core} e
-\texttt{ui} e gli ho chiesto di leggerlo cercando nomi poco chiari, casi limite non
-gestiti, possibili \texttt{NullPointerException} e punti in cui il codice si allontana
-dal modello ASM.
-
+Ho usato Claude Opus 4.7 come se fosse un collega a cui far dare una seconda occhiata al
+codice. Gli ho passato tutto il sorgente dei package \texttt{core} e \texttt{ui} e gli ho
+chiesto di leggerlo cercando nomi poco chiari, casi limite non gestiti, possibili
+\texttt{NullPointerException} e punti in cui il codice si allontana dal modello ASM.
+\\ \\
 Le cose che sono uscite non le ho prese per buone così com'erano: le ho valutate una per
 una, decidendo di volta in volta se correggerle, mitigarle o lasciarle stare spiegando
 perché. L'LLM ha segnalato i punti su cui ragionare, le decisioni le ho prese io.
 
 \begin{enumerate}
-    \item \textbf{Manca il controllo di null su \texttt{utenteRilevato} in CHK\_OUT}: il
-    confronto restituisce false senza dire niente, e il sistema va in USC come se
-    l'utente non fosse STD. L'ho lasciata così per restare fedele all'ASM, dove il
-    dominio \texttt{TipoUtente} non prevede l'assenza del dato; in più tutti i punti che
-    chiamano quel metodo impostano sempre l'utente.
-
     \item \textbf{\texttt{TipoPosto.NESSUNO} vuol dire due cose diverse}: in
     \texttt{assegnaPosto} significa ``non c'è posto'', in \texttt{liberaPosto} significa
     ``non fare niente''. Chiarito nel Javadoc, invece di inventare un tipo separato che
@@ -138,9 +33,12 @@ perché. L'LLM ha segnalato i punti su cui ragionare, le decisioni le ho prese i
     scenari di test la differenza non si vede, quindi resta la versione più semplice,
     scritta nel Javadoc della classe.
 
-    \item \textbf{Non c'è thread-safety}. Va bene così, perché c'è un varco solo pilotato
-    da una FSM sequenziale, esattamente come nel modello. Resta segnata come limite se un
-    giorno si volessero gestire più varchi.
+    \item \textbf{I bottoni della UI sono sempre attivi}: \texttt{MainView} non li
+    disabilita in base allo stato, quindi si può cliccare ``Pagamento'' mentre siamo in
+    IDLE. Non succede niente di male perché quegli step finiscono assorbiti dai
+    self-loop della FSM, cioè proprio dagli \texttt{if} senza \texttt{else} che il Model
+    Advisor segnalava come MP2 (\S\ref{sec:model-advisor}). Per un prototipo va bene; in
+    una versione vera si metterebbe un \texttt{setEnabled} legato allo stato.
 
     \item \textbf{\texttt{posto\_assegnato} è una memoria da un posto solo, e il difetto
     c'è anche nel modello ASM}. Questa è l'osservazione più importante di tutte. Sia la
@@ -156,115 +54,40 @@ perché. L'LLM ha segnalato i punti su cui ragionare, le decisioni le ho prese i
     utile di tutto il progetto: è un difetto che il testing di conformità non può
     trovare, visto che il codice fa esattamente quello che dice il modello, e che salta
     fuori solo leggendo il codice con occhio critico.
-
-    \item \textbf{I bottoni della UI sono sempre attivi}: \texttt{MainView} non li
-    disabilita in base allo stato, quindi si può cliccare ``Pagamento'' mentre siamo in
-    IDLE. Non succede niente di male perché quegli step finiscono assorbiti dai
-    self-loop della FSM, cioè proprio dagli \texttt{if} senza \texttt{else} che il Model
-    Advisor segnalava come MP2 (\S\ref{sec:asmetav-vc}). Per un prototipo va bene; in una
-    versione vera si metterebbe un \texttt{setEnabled} legato allo stato.
 \end{enumerate}
 
-\subsection{Analisi automatica con SpotBugs}
+Quest'ultimo punto è anche quello che dà il senso all'intera sezione. Né il testing di
+conformità né la verifica ESC potevano vederlo: i contratti JML di \texttt{Parcheggio}
+restano rispettati anche nell'esecuzione che rilascia il posto sbagliato, perché il
+problema sta più in alto, a livello di FSM e di modello. Il model checking e l'ESC
+dimostrano quello che è stato formalizzato; l'ispezione trova quello che nella
+formalizzazione non c'è.
+
+\subsection{Gli altri due filtri, in breve}
 \label{sec:spotbugs}
-
-L'ultimo passaggio è il tool automatico. Ho usato SpotBugs (il successore di FindBugs,
-che ormai è fermo), configurato nel \texttt{pom.xml} con \texttt{effort=Max} e
-\texttt{threshold=Low}, cioè il massimo della sensibilità, così da vedere anche le
-segnalazioni di priorità bassa. Si lancia con \texttt{mvn spotbugs:check}.
-
-Prima di arrivare al risultato ho perso un po' di tempo con un problema che non c'entra
-niente col codice: sulla mia macchina Maven girava di default con una JDK 26, e SpotBugs
-non riusciva a leggerne il bytecode (\texttt{Unsupported class file major version 70}).
-Il risultato era ingannevole, perché la build falliva ma con zero classi analizzate e
-zero bug: sembrava un errore mio. Lanciandolo con la JDK 17, la stessa che usa la CI, è
-andato a posto.
-
-\subsubsection*{Prima passata: 7 bug}
-
-\begin{longtable}{@{}p{4.6cm}p{1.5cm}p{6.6cm}@{}}
-\toprule
-\textbf{Tipo} & \textbf{Priorità} & \textbf{Dove} \\
-\midrule
-\endhead
-\texttt{CT\_CONSTRUCTOR\_THROW} & Medium & I due costruttori di \texttt{Parcheggio} \\
-\texttt{CT\_CONSTRUCTOR\_THROW} & Medium & I due costruttori di \texttt{SmartParkingFSM} \\
-\texttt{SE\_BAD\_FIELD} & Medium & \texttt{MainView}, campo \texttt{fsm} \\
-\texttt{SE\_NO\_SERIALVERSIONID} & Low & \texttt{MainView} \\
-\texttt{SE\_NO\_SERIALVERSIONID} & Low & \texttt{Application} \\
-\bottomrule
-\caption{Le 7 segnalazioni di SpotBugs (le prime due righe valgono 2 bug ciascuna).}
-\label{tab:spotbugs}
-\end{longtable}
-
-Si dividono in due gruppi con storie molto diverse.
-
-\paragraph{I quattro \texttt{CT\_CONSTRUCTOR\_THROW}.}
-Riguardano tutti e quattro i costruttori che validano i parametri e lanciano
-\texttt{IllegalArgumentException}. SpotBugs avverte che un costruttore che lancia lascia
-l'oggetto parzialmente costruito, e questo apre la porta a un \emph{finalizer attack}:
-una sottoclasse malevola sovrascrive \texttt{finalize()} e si ritrova in mano il
-riferimento a un oggetto che non ha mai superato i controlli.
-
-Qui c'è un cortocircuito che mi ha fatto pensare. Quei \texttt{throw} sono esattamente i
-controlli difensivi che ho messo per far rispettare a runtime i \texttt{requires} JML
-(Sezione~\ref{sec:jml-ref}): cioè la cosa che il tool segnala è la stessa che rende il
-codice robusto. Toglierli sarebbe stato un peggioramento.
-
-La soluzione giusta non è rinunciare alla validazione ma togliere il presupposto
-dell'attacco, cioè l'ereditarietà: ho dichiarato \texttt{final} sia \texttt{Parcheggio}
-sia \texttt{SmartParkingFSM}. Se la classe non si può estendere, nessuno può sovrascrivere
-\texttt{finalize()} e l'attacco non è più possibile. Prima di farlo ho controllato che
-nessuno le estendesse e che Mockito, in \texttt{DisplayMockTest}, mocchi soltanto
-l'interfaccia \texttt{Display}, che invece resta com'era.
-
-\paragraph{I tre bug di serializzazione.}
-Questo gruppo è quello che vale davvero, perché è l'unico punto in cui l'analisi
-automatica ha trovato un difetto che né la checklist né l'LLM avevano visto.
-
-\texttt{SE\_BAD\_FIELD} segnala che \texttt{MainView} tiene un campo \texttt{fsm} non
-serializzabile. Sembra una pedanteria, e invece no: Vaadin mette l'intero albero dei
-componenti nella sessione HTTP, quindi con la replicazione di sessione o al riavvio del
-server quella vista non si riesce a serializzare e l'applicazione si pianta. È un difetto
-vero, solo latente, perché in locale con un'istanza sola non si manifesta mai.
-
-Il motivo per cui gli altri due controlli se l'erano perso è chiaro a posteriori: per
-accorgersene bisogna sapere come Vaadin gestisce la sessione, e né la checklist né la
-lettura del codice guardavano lì. Il tool invece conosce i contratti delle librerie.
-
-Ho reso \texttt{Parcheggio}, \texttt{SmartParkingFSM} e \texttt{SensorInput}
-serializzabili. Ho dovuto far estendere \texttt{Serializable} anche all'interfaccia
-\texttt{Display}, perché in \texttt{MainView} viene passata come lambda
-(\texttt{messaggioLabel::setText}) e una lambda è serializzabile solo se lo è la sua
-interfaccia funzionale. Infine ho aggiunto \texttt{serialVersionUID} a tutte le classi
-coinvolte, \texttt{MainView} e \texttt{Application} comprese.
-
-\subsubsection*{Seconda passata: 0 bug}
-
-Dopo le correzioni SpotBugs riporta \texttt{BugInstance size is 0}, i 59 test del core
-restano tutti verdi e la copertura JaCoCo non si muove (98\% instruction e 98\% branch,
-sempre con quell'unico \texttt{default} irraggiungibile come solo branch scoperto).
-
-\subsection{Bilancio}
-
-Fra i tre passaggi sono uscite quindici osservazioni: sette dalla checklist e dall'LLM,
-sette da SpotBugs, più il difetto della specifica. Ed è interessante che ognuno dei tre
-metodi abbia trovato cose che gli altri due non potevano vedere.
+\label{sec:checklist}
 
 La \textbf{checklist} è meccanica e va per categorie, quindi mi ha costretto a guardare
-le \emph{firme} dei metodi, che leggendo il codice per capire cosa fa non guardi mai: da
-lì è saltato fuori il problema dei parametri adiacenti dello stesso tipo.
-
-L'\textbf{LLM} ragiona sul significato, e ha trovato il difetto della memoria a slot
-singolo. Una checklist non avrebbe potuto vederlo, perché non viola nessuna regola: è il
-modello a essere incompleto.
-
-\textbf{SpotBugs} conosce i contratti delle librerie, e ha trovato il problema di
-serializzazione di Vaadin, che gli altri due non avevano gli strumenti per notare.
-
-Fra tutte, quella che conta di più resta il difetto della memoria a slot singolo, perché
-né il testing di conformità né la verifica ESC riuscivano a vederlo. I contratti JML di
-\texttt{Parcheggio} restano rispettati anche nell'esecuzione che rilascia il posto
-sbagliato, dato che il problema sta più in alto, a livello di FSM e di modello. Il model
-checking e l'ESC dimostrano quello che è stato formalizzato; l'ispezione trova quello che
-nella formalizzazione non c'è.
+le \emph{firme} dei metodi, cosa che leggendo il codice per capire cosa fa non si fa mai.
+Da lì è saltata fuori l'unica segnalazione che nessun altro controllo aveva visto: sia
+\texttt{Parcheggio(int, int)} sia il costruttore di \texttt{SensorInput} hanno
+\textbf{parametri adiacenti dello stesso tipo}, quindi uno scambio in chiamata compila
+senza un fiato e cambia il comportamento. Su \texttt{SensorInput} il rischio non si
+presenta perché il costruttore lo si usa sempre tramite i metodi statici di comodo; su
+\texttt{Parcheggio} resta, ma quel costruttore lo chiamano solo i test.
+\\ \\
+\textbf{SpotBugs} (\texttt{effort=Max}, \texttt{threshold=Low}, lanciato con
+\texttt{mvn spotbugs:check}) ha prodotto 7 segnalazioni, divise in due gruppi. Quattro
+\texttt{CT\_CONSTRUCTOR\_THROW} sui costruttori che validano i parametri: i \texttt{throw}
+sono però proprio i controlli difensivi che fanno rispettare a runtime i \texttt{requires}
+JML, quindi invece di toglierli ho dichiarato \texttt{final} le classi
+\texttt{Parcheggio} e \texttt{SmartParkingFSM}, che è ciò che rende impossibile il
+\emph{finalizer attack} presupposto dalla segnalazione. Gli altri tre riguardano la
+serializzazione ed è il gruppo che vale: \texttt{MainView} teneva un campo non
+serializzabile, e siccome Vaadin mette l'intero albero dei componenti nella sessione HTTP,
+con la replicazione di sessione l'applicazione si sarebbe piantata. È un difetto vero ma
+latente, che né la checklist né l'LLM potevano vedere perché richiede di conoscere i
+contratti interni di Vaadin. Dopo le correzioni (classi serializzabili,
+\texttt{Display} che estende \texttt{Serializable} per via della lambda, e
+\texttt{serialVersionUID} ovunque) SpotBugs riporta \texttt{BugInstance size is 0}, con i
+test tutti verdi e la copertura invariata.

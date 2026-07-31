@@ -28,7 +28,8 @@
 \usepackage{geometry}
 \usepackage{fancyhdr}
 \usepackage{caption}
-
+\usepackage{float}
+\usepackage{parskip}
 \geometry{margin=2.5cm}
 
 \hypersetup{
@@ -94,7 +95,7 @@
 %  nome giusto dentro docs/latex/images/ e ricompilare.
 % ============================================================
 \newcommand{\screenshot}[3]{%
-    \begin{figure}[h!]
+    \begin{figure}[H]
         \centering
         \IfFileExists{images/#1.png}{%
             \includegraphics[width=0.85\textwidth]{images/#1.png}%
@@ -124,6 +125,10 @@
 \tableofcontents
 \newpage
 
+% ATTENZIONE: l'ordine di inclusione non segue la numerazione dei nomi file.
+% I file sono stati numerati secondo lo schema punteggi del progetto, mentre qui
+% sono in ordine di lettura. Quindi 04_java.tex e' la Sezione 3, 05_testing.tex
+% e' la Sezione 4 e 03_jml.tex e' la Sezione 5.
 \input{sections/01_requisiti}
 \input{sections/02_asmeta}
 \input{sections/04_java}

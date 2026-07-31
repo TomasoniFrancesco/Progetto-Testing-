@@ -59,40 +59,43 @@ STD/DISABILE/ABBONATO'', ``Transito'', ``Pagamento'', ``Auto va via'' e ``Auto i
 uscita''. Cliccandoli si fa avanzare la macchina a stati come se arrivassero gli input
 dai sensori veri.
 
-\screenshot{vaadin_ui_idle}{UI Vaadin -- stato iniziale}{%
-Pagina appena caricata: stato IDLE, un posto standard e uno disabile liberi.}
-
 Questa è la pagina appena aperta: stato IDLE e i due contatori a 1.
 
-\screenshot{vaadin_ui_ingresso_std}{UI Vaadin -- dopo un ingresso STD}{%
-Dopo ``Arriva auto STD'' e ``Transito'': stato IDLE e posti standard liberi a 0.}
+\screenshot{vaadin_ui_idle}{UI Vaadin -- stato iniziale}{%
+Pagina appena caricata: stato IDLE, un posto standard e uno disabile liberi.}
 
 Qui è stato cliccato ``Arriva auto STD'' e poi ``Transito''. Siamo tornati in IDLE ma i posti
 standard sono scesi a 0.
 
-\screenshot{vaadin_ui_neg}{UI Vaadin -- accesso negato a parcheggio pieno}{%
-Con entrambi i contatori a 0, un nuovo arrivo mostra il messaggio ``Accesso negato''.}
+
+\screenshot{vaadin_ui_ingresso_std}{UI Vaadin -- dopo un ingresso STD}{%
+Dopo ``Arriva auto STD'' e ``Transito'': stato IDLE e posti standard liberi a 0.}
+
 
 Con il parcheggio pieno, se arriva un'altra auto compare il messaggio di accesso
 negato.
 
-\screenshot{vaadin_ui_tarif}{UI Vaadin -- attesa pagamento}{%
-Stato TARIF dopo aver cliccato ``Auto in uscita'' con un utente STD dentro.}
+\screenshot{vaadin_ui_neg}{UI Vaadin -- accesso negato a parcheggio pieno}{%
+Con entrambi i contatori a 0, un nuovo arrivo mostra il messaggio ``Accesso negato''.}
 
 E questo è lo stato TARIF: l'utente STD sta uscendo e il sistema si è fermato ad
 aspettare il pagamento.
 
+\screenshot{vaadin_ui_tarif}{UI Vaadin -- attesa pagamento}{%
+Stato TARIF dopo aver cliccato ``Auto in uscita'' con un utente STD dentro.}
+
+
+
 \subsection{Test end-to-end con Selenium}
 
-La UI è provata anche con un test end-to-end in Selenium (\texttt{UISeleniumTest}). È
-taggato ``ui'' e sta fuori dalla build normale, perché per girare ha bisogno
-dell'applicazione già avviata e di Chrome installato, e in CI non ci sono.
+La UI è provata anche con un test end-to-end in Selenium (\texttt{UISeleniumTest}). 
 
 Quello che fa è: apre la pagina con ChromeDriver in modalità headless, aspetta che Vaadin
 finisca di disegnare la pagina lato client (con \texttt{WebDriverWait}, altrimenti trova
 il DOM vuoto), clicca ``Arriva auto STD'' e controlla che lo stato mostrato diventi INGR
-oppure NEG. Per lanciarlo serve \texttt{mvn test -Dtest.groups=ui
--Dtest.excludedGroups=}, oppure lo si fa partire da Eclipse come un normale test JUnit.
+oppure NEG. L'ho fatto partire da Eclipse come un normale test JUnit.
 
 \screenshot{selenium_test_green}{Test Selenium end-to-end superato}{%
 UISeleniumTest verde, eseguito con l'applicazione attiva su localhost:8080.}
+
+\newpage

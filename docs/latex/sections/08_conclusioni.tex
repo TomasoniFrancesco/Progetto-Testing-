@@ -1,39 +1,51 @@
 \section{Conclusioni}
 
-Il progetto copre tutte e quattro le parti chieste dalla consegna: i requisiti, il
-modello Asmeta con gli scenari e il model checking, i contratti JML sul nucleo e
-l'implementazione Java con i test, la UI, la CI e l'analisi statica.
+Il filo che tiene insieme tutto il progetto è che la stessa proprietà viene controllata
+più volte, con strumenti che ragionano in modo diverso. Che i contatori dei posti non
+escano mai dai loro limiti è scritto tre volte: come CTLSPEC sul modello astratto, come
+invariante JML sulla classe \texttt{Parcheggio} e come assert nei test JUnit. Non è
+ridondanza fine a sé stessa, perché ognuno dei tre lo dimostra su un oggetto diverso --
+il modello, il codice, l'esecuzione -- e nessuno dei tre da solo coprirebbe gli altri due.
 
-\subsection{Riepilogo delle evidenze}
+\subsection*{Cosa ha trovato ciascuna tecnica}
 
-\begin{itemize}
-    \item Simulatore e animatore Asmeta (Sezione~2)
-    \item AsmetaV -- copertura degli scenari Avalla (Sezione~2)
-    \item AsmetaSMV -- 8 CTLSPEC verificate e 2 volutamente false con controesempio (Sezione~2)
-    \item Model Advisor e ATGT, opzionali (Sezione~2)
-    \item OpenJML ESC sui contratti del nucleo (Sezione~3)
-    \item UI Vaadin in esecuzione e test Selenium (Sezione~4)
-    \item JUnit (59 test del package \texttt{core}, tutti verdi, più 1 test Selenium escluso dalla build standard), copertura JaCoCo e mutation testing con PIT, 90 mutanti su 90 uccisi (Sezione~5)
-    \item Ispezione con checklist, seconda lettura con LLM e analisi statica con SpotBugs, da 7 bug a 0 (Sezione~6)
-    \item GitHub Actions: build e test automatici a ogni push, più il branch \texttt{ci\_failure} come prova che la pipeline intercetta le regressioni (Sezione~7)
-\end{itemize}
+La cosa più istruttiva è stata vedere che ogni strumento ha intercettato qualcosa che gli
+altri non potevano vedere.
 
-\subsection{Cosa mi porto a casa}
+Il \textbf{model checking} ha confermato le proprietà di sicurezza sui contatori, ma la
+parte che ha reso di più sono state le due CTLSPEC volutamente false: il controesempio
+della \#9 ha mostrato che il posto riservato non viene mai dato a chi non ne ha diritto
+nemmeno quando è l'ultima risorsa, e quello della \#10 ha reso concreta la differenza fra
+\texttt{ef} e \texttt{af}, cioè fra ``si può tornare in IDLE'' e ``si torna
+necessariamente in IDLE''.
 
-La cosa che mi è rimasta di più, facendolo, è che le varie tecniche non si sovrappongono
-ma guardano posti diversi.
+La \textbf{verifica ESC} ha bocciato un contratto che sembrava corretto. Il caso di
+\texttt{liberaPosto} è stato utile proprio perché il codice non era sbagliato: mancava
+un'ipotesi nella specifica, e il solver ha costruito l'esecuzione che la sfruttava. È la
+differenza fra scrivere quello che il metodo fa e scrivere quello che il metodo
+\emph{richiede} per poterlo fare.
 
-Il model checking mi ha detto che i contatori non possono impazzire in nessuno stato
-raggiungibile, cosa che con i test non avrei mai potuto dimostrare, al massimo controllare
-in qualche caso. L'ESC mi ha dato la stessa garanzia sul codice vero, però solo su una
-classe che ho dovuto tenere apposta piccola e senza dipendenze. I test coprono anche il
-resto, ma solo nei casi che mi sono venuti in mente, e infatti la coverage mi ha fatto
-scoprire due rami che mi ero dimenticato. L'ispezione, per ultima, ha trovato quello che tutte le altre si erano perse. Da un lato
-il difetto della memoria a slot singolo: il codice era conforme al modello, quindi nessuna
-verifica automatica poteva segnalarlo, perché il problema stava nel modello. Dall'altro,
-con SpotBugs, un problema di serializzazione della vista Vaadin che non avrei mai visto
-leggendo il codice, perché per accorgersene bisogna conoscere il contratto della
-libreria.
+Il \textbf{mutation testing} ha risposto a una domanda che la copertura non poteva
+risolvere: il 98\% di JaCoCo dice che le righe vengono eseguite, il 100\% di PIT dice che
+i loro effetti vengono anche controllati. Senza i \texttt{verify} di Mockito i ventuno
+mutanti \texttt{VoidMethodCall} sarebbero sopravvissuti tutti.
 
-Se dovessi rifarlo, la cosa che cambierei è proprio quella: mettere l'associazione
-veicolo$\to$posto già nell'ASM, invece di scoprirne la mancanza alla fine.
+L'\textbf{ispezione del codice} ha trovato l'unico difetto che nessuna verifica formale
+poteva trovare: \texttt{posto\_assegnato} è una memoria da un posto solo, mentre il
+parcheggio ne ha due. Né il testing di conformità né l'ESC potevano segnalarlo, perché il
+codice fa esattamente quello che il modello dice; è il modello a essere incompleto.
+Questo, più di ogni risultato verde, è il punto che porto via dal progetto: la verifica
+formale dimostra quello che è stato formalizzato, e non ha niente da dire su quello che
+nella formalizzazione non c'è.
+
+\subsection*{Limiti noti}
+
+Il difetto della memoria a slot singolo è documentato e non corretto: sistemarlo
+richiederebbe una mappa veicolo$\to$posto sia nell'ASM sia in Java, cioè rifare la parte
+centrale di entrambi. Il parcheggio ha un posto per tipo, scelta obbligata per tenere
+finito lo spazio di stati del model checker, e questo rende alcune proprietà più facili
+da dimostrare di quanto sarebbero su una capacità realistica. Il nucleo verificato è
+piccolo e senza cicli né strutture dati, il che è precisamente la ragione per cui l'ESC
+chiude tutte le prove: su una classe con array o contatori non limitati la stessa cosa
+sarebbe molto più difficile. Infine il 100\% di mutation score vale per gli operatori
+predefiniti di PIT, non per qualunque difetto immaginabile.

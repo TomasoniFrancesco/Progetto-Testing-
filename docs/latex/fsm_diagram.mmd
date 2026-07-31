@@ -1,0 +1,24 @@
+flowchart LR
+    IDLE(("STATO INIZIALE")) -- "Sens_In=1 / -" --> CHK_IN(("CHECK<br>ENTRY"))
+    IDLE -- "Sens_Out=1 / -" --> CHK_OUT(("CHECK<br>EXIT"))
+    CHK_IN -- "LeggiUtente / -" --> VER(("VERIFICA<br>POSTI"))
+    VER -- "(NOT Dis AND P_Std=0) OR (Dis AND P_Dis=0 AND P_Std=0) / MostraMsg" --> NEG(("ACCESSO<br>NEGATO"))
+    VER -- "(NOT Dis AND P_Std>0) OR (Dis AND (P_Dis>0 OR P_Std>0)) / ApriSbarra" --> INGR(("SBARRA<br>INGRESSO"))
+    NEG -- "AutoVia=0 / -" --> NEG
+    NEG -- "AutoVia=1 / SpegniMsg" --> IDLE
+    INGR -- "TransitoOk=0 / -" --> INGR
+    INGR -- "TransitoOk=1 / DecrPosti" --> IDLE
+    CHK_OUT -- "Utente!=Std / ApriSbarra" --> USC(("SBARRA<br>USCITA"))
+    CHK_OUT -- "Utente=Std / -" --> TARIF(("CALCOLO<br>TARIFFA"))
+    TARIF -- "Pagamento=OK / ApriSbarra" --> USC
+    TARIF -- "Pagamento=KO / -" --> TARIF
+    USC -- "TransitoOk=0 / -" --> USC
+    USC -- "TransitoOk=1 / IncrPosti+ResetMemoria" --> IDLE
+    style IDLE stroke-width:2px,fill:#ffffff
+    style CHK_IN stroke-width:2px,fill:#ffffff
+    style CHK_OUT stroke-width:2px,fill:#ffffff
+    style VER stroke-width:2px,fill:#ffffff
+    style NEG stroke-width:2px,fill:#ffffff
+    style INGR stroke-width:2px,fill:#ffffff
+    style TARIF stroke-width:2px,fill:#ffffff
+    style USC stroke-width:2px,fill:#ffffff

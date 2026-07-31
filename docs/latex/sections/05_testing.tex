@@ -13,7 +13,7 @@ Le classi sono queste:
 \midrule
 \endhead
 \texttt{ParcheggioTest} & Costruttori, precondizioni violate, tutti i rami di \texttt{assegnaPosto} e \texttt{liberaPosto}, più un test parametrico con CSV. \\
-\texttt{SmartParkingFSMTest} & Tutti gli 8 stati e le transizioni, il fallback del disabile, il parcheggio pieno, i self-loop di NEG, INGR e TARIF. \\
+\texttt{SmartParkingFSMTest} & Tutti gli 8 stati e le transizioni, il fallback del disabile, il parcheggio pieno, i self-loop di NEG, INGR, TARIF e USC. \\
 \texttt{McdcVerificaTest} & Copertura MC/DC delle due decisioni composte di \texttt{assegnaPosto}. \\
 \texttt{DisplayMockTest} & Le notifiche al \texttt{Display}, controllate con Mockito. \\
 \texttt{ScenarioAvallaTest} & Traduzione di \texttt{test\_pieno.avalla} in JUnit (model based testing). \\
@@ -110,15 +110,24 @@ metodo \texttt{mostra} sia stato chiamato con il testo giusto.
 @Test
 void notificaAccessoNegatoQuandoParcheggioPieno() {
     SmartParkingFSM fsm = new SmartParkingFSM(new Parcheggio(0, 0), display);
+
     fsm.step(SensorInput.sensIn());
     fsm.step(SensorInput.utente(TipoUtente.STD));
     fsm.step(SensorInput.utente(TipoUtente.STD));
+
+    verify(display).mostra("Veicolo rilevato in ingresso");
+    verify(display).mostra("Verifica utente in corso");
     verify(display).mostra("Accesso negato");
+    verifyNoMoreInteractions(display);
 }
 \end{lstlisting}
 
-Il test parte da un parcheggio già pieno, fa arrivare un'auto e controlla che al display
-arrivi davvero ``Accesso negato''.
+Il test parte da un parcheggio già pieno, fa arrivare un'auto e controlla l'intera
+sequenza di messaggi, non solo l'ultimo. La riga che conta di più è
+\texttt{verifyNoMoreInteractions}: senza di quella il test direbbe soltanto ``fra le
+altre cose ha mostrato Accesso negato'', mentre così afferma che il display ha ricevuto
+esattamente quei tre messaggi e nient'altro. È la differenza fra verificare che qualcosa
+sia successo e verificare che sia successo \emph{solo} quello.
 
 \subsection{Model Based Testing}
 
@@ -137,8 +146,7 @@ Vista JUnit con tutti i test verdi e il conteggio totale.}
 Tutti i test del package \texttt{core} passano: sono 59, più quello Selenium che sta
 fuori dalla build normale.
 
-La copertura si misura con JaCoCo lanciando \texttt{mvn verify} e guardando il report in
-\texttt{target/site/jacoco/index.html}. Dal conteggio sono escluse due cose: la UI Vaadin,
+La copertura si misura con JaCoCo lanciando \texttt{mvn verify} e guardando il report. Dal conteggio sono escluse due cose: la UI Vaadin,
 provata end-to-end con Selenium e che JaCoCo non riesce a misurare, e la classe di
 avvio di Spring Boot, che sono tre righe di boilerplate. L'esclusione è scritta nel
 \texttt{pom.xml}.
