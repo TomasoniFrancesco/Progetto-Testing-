@@ -122,8 +122,12 @@ azzera \texttt{posto\_assegnato}.
 Il modello principale non è utilizzabile per il model checking, quindi ne esiste una
 copia semplificata in \texttt{SmartParking\_MC.asm}. Le differenze sono due:
 \\ \\
-La prima è che le funzioni derivate non ci sono e gli if sono riscritti in forma
-``appiattita''. Si comportano allo stesso modo, ma la traduzione verso NuSMV va liscia.
+La prima riguarda i costrutti: nella copia non ci sono né le funzioni derivate né il
+\texttt{choose}, e la scelta del posto è riscritta come una catena di \texttt{if}
+``appiattiti''. Il comportamento è lo stesso, ma la traduzione verso NuSMV va liscia.
+Sul \texttt{choose} in particolare la semplificazione è d'obbligo: tradurre una scelta in
+un modello a stati finiti significa generare una transizione per ogni candidato, cosa che
+qui non servirebbe a niente visto che il candidato è sempre uno solo.
 \\ \\
 La seconda riguarda i contatori: nel modello principale sono \texttt{Integer}, e
 AsmetaSMV i domini infiniti non li accetta, quindi qui stanno su un dominio finito
@@ -249,7 +253,15 @@ casa senza fatica, ma non sostituisce gli scenari scritti a mano: quelli restano
 necessari per i casi limite, che sono poi proprio quelli su cui un sistema del genere
 tende a rompersi.
 
-\subsection{Model checking (\texttt{asmeta/src/SmartParking\_MC.asm})}
+\subsection{Model checking con AsmetaSMV}
+
+Il model checking consiste nel dare al tool il modello a stati finiti e una proprietà
+espressa in logica temporale, e lasciare che esplori \emph{tutti} gli stati raggiungibili
+per stabilire se la proprietà vale sempre. Se non vale, restituisce il cammino che la
+viola. Le proprietà si scrivono come \texttt{CTLSPEC} dentro il modello semplificato, ed
+è una cosa diversa dai \texttt{check} degli scenari Avalla: un \texttt{check} guarda un
+singolo stato su una traccia che ho deciso io, una \texttt{CTLSPEC} quantifica su tutti i
+cammini possibili.
 
 Le CTLSPEC sono 10. Otto sono vere e stanno in tre gruppi: safety (cose che non devono
 mai succedere), raggiungibilità (cose che devono poter succedere) e liveness (cose che

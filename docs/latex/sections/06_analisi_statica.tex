@@ -1,11 +1,13 @@
 \section{Ispezione del codice e analisi statica}
 \label{sec:analisi-statica}
 
-Il codice è passato sotto tre filtri diversi: la checklist di code inspection vista a
-lezione, una seconda lettura fatta fare a un LLM e l'analisi automatica con SpotBugs. La
-parte che ha reso di più, e a cui dedico questa sezione, è la seconda.
+Il codice è passato sotto tre filtri diversi: una rilettura critica fatta fare a un LLM,
+la checklist di code inspection vista a lezione e l'analisi automatica con SpotBugs. Il
+primo è quello che ha reso di più ed è quello a cui dedico la maggior parte della
+sezione; gli altri due li riassumo dopo, insieme a cosa ha trovato ciascuno che gli altri
+non potevano vedere.
 
-\subsection{Seconda lettura con un LLM}
+\subsection{Rilettura critica con un LLM}
 \label{sec:llm-review}
 
 Ho usato Claude Opus 4.7 come se fosse un collega a cui far dare una seconda occhiata al
@@ -69,7 +71,7 @@ formalizzazione non c'è.
 
 La \textbf{checklist} è meccanica e va per categorie, quindi mi ha costretto a guardare
 le \emph{firme} dei metodi, cosa che leggendo il codice per capire cosa fa non si fa mai.
-Da lì è saltata fuori l'unica segnalazione che nessun altro controllo aveva visto: sia
+Da lì è saltata fuori una segnalazione che nessuno degli altri due filtri aveva visto: sia
 \texttt{Parcheggio(int, int)} sia il costruttore di \texttt{SensorInput} hanno
 \textbf{parametri adiacenti dello stesso tipo}, quindi uno scambio in chiamata compila
 senza un fiato e cambia il comportamento. Su \texttt{SensorInput} il rischio non si

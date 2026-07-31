@@ -31,9 +31,13 @@ private /*@ spec_public @*/ int postiDis;
 \end{lstlisting}
 
 Sono le stesse identiche proprietà già verificate con il model checking, cioè
-\texttt{ag(posti >= 0)} e \texttt{ag(posti <= 1)}. Le ho scritte apposta uguali: così la
-stessa cosa finisce garantita a tre livelli diversi, nel modello con il model checker,
-nel codice con il contratto, e ancora nei test con JaCoCo.
+\texttt{ag(posti\_std >= 0)} e \texttt{ag(posti\_std <= 1)} con le corrispondenti sui
+posti disabili. Le ho scritte apposta uguali, così la stessa proprietà finisce controllata
+a tre livelli: sul modello astratto dal model checker, che la dimostra su tutti gli stati
+raggiungibili; sul codice dal contratto JML, che la dimostra su tutte le esecuzioni
+possibili; e a runtime dagli assert di \texttt{ParcheggioTest}, che la controllano sui
+casi effettivamente eseguiti. Sono tre garanzie di forza decrescente ma su oggetti
+diversi, ed è il motivo per cui ha senso averle tutte e tre.
 
 \subsection{Costruttori}
 
