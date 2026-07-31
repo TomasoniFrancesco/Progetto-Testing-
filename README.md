@@ -17,7 +17,7 @@ standard e posti disabili, riconoscendo tre tipologie di utente (STD, DISABILE,
 ABBONATO) e applicando pagamento solo per gli utenti STD in uscita. Il
 comportamento è specificato formalmente come macchina a stati ASM (8 stati),
 validato con scenari Avalla e model checking CTL, e poi implementato in Java con
-contratti JML sul nucleo di dominio.
+contratti JML.
 
 ## Struttura del repository
 
