@@ -7,9 +7,6 @@ sistema di gestione di un parcheggio intelligente (SmartParking), modellato in
 Abstract State Machine (Asmeta), specificato con JML e implementato in Java con
 interfaccia Vaadin.
 
-**📄 La documentazione completa del progetto è il documento unico
-[`docs/latex/main.pdf`](docs/latex/main.pdf) (33 pagine).**
-
 ## Descrizione
 
 SmartParking gestisce l'ingresso e l'uscita di veicoli da un parcheggio con posti
