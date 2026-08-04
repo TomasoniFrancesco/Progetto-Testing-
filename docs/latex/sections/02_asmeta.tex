@@ -4,22 +4,21 @@
 \label{sec:modello}
 
 Partiamo dalla signature. I domini enumerativi sono tre: \texttt{StatoSistema} con gli
-8 stati, \texttt{TipoUtente} con i tre tipi di utente e \texttt{TipoPosto} con i due
+8 stati, \texttt{TipoUtente} con i 3 tipi di utente e \texttt{TipoPosto} con i 2
 tipi di posto più il valore \texttt{NESSUNO}, che vale quando non c'è nessun posto
 occupato.
 
-Poi ci sono sei funzioni monitorate, che sono quelle che arrivano dall'esterno e che il
-modello subisce: \texttt{sens\_in} e \texttt{sens\_out} per i due sensori,
+Poi ci sono 6 funzioni monitorate, che sono quelle che arrivano dall'esterno: \texttt{sens\_in} e \texttt{sens\_out} per i due sensori,
 \texttt{transito\_ok} per dire che l'auto è passata sotto la sbarra, \texttt{auto\_via}
 per dire che se n'è andata dopo un rifiuto, \texttt{utente\_rilevato} per il tipo di
 utente letto dal totem e \texttt{pagamento\_ok} per l'esito del pagamento.
 
-Le funzioni controllate, cioè la memoria del sistema, sono quattro: \texttt{stato},
-i due contatori \texttt{posti\_std} e \texttt{posti\_dis}, e \texttt{posto\_assegnato},
+Le funzioni controllate, cioè la memoria del sistema, sono 4: \texttt{stato},
+i 2 contatori \texttt{posti\_std} e \texttt{posti\_dis}, e \texttt{posto\_assegnato},
 che si ricorda che tipo di posto ha preso l'auto entrata. Quest'ultima serve perché in
 uscita bisogna sapere quale contatore rimettere a posto.
 
-Le funzioni derivate sono due. La prima è \texttt{assegnabile}, ed è la più
+Le funzioni derivate sono 2. La prima è \texttt{assegnabile}, ed è la più
 interessante delle due perché è n-aria: prende due argomenti, un utente e un posto, e
 dice se quel posto si può dare a quell'utente.
 

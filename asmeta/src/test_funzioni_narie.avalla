@@ -1,0 +1,90 @@
+scenario test_funzioni_narie
+
+load SmartParking.asm
+
+// ---------------------------------------------------------------------------
+// Scopo: mostrare che le due funzioni n-arie del modello calcolano davvero
+// quello che dichiarano, valutandole direttamente con i loro argomenti.
+//   - capacita(TipoPosto -> Integer)                    funzione STATICA
+//   - assegnabile(Prod(TipoUtente,TipoPosto) -> Boolean) funzione DERIVATA
+// La differenza fra le due si vede alla fine: la statica resta identica per
+// tutto lo scenario, la derivata cambia valore quando cambia lo stato.
+// ---------------------------------------------------------------------------
+
+//  1. LA FUNZIONE STATICA, sui tre valori del dominio
+check capacita(POSTO_STD) = 1;
+check capacita(POSTO_DIS) = 1;
+check capacita(NESSUNO) = 0;
+
+//  2. LA DERIVATA NELLO STATO INIZIALE (posti_std = 1, posti_dis = 1)
+check stato = IDLE;
+check posti_std = 1;
+check posti_dis = 1;
+
+// un posto standard si da' a chiunque, purche' ce ne sia uno libero
+check assegnabile(STD, POSTO_STD) = true;
+check assegnabile(ABBONATO, POSTO_STD) = true;
+check assegnabile(DISABILE, POSTO_STD) = true;
+
+// un posto riservato si da' SOLO al disabile
+check assegnabile(DISABILE, POSTO_DIS) = true;
+check assegnabile(STD, POSTO_DIS) = false;
+check assegnabile(ABBONATO, POSTO_DIS) = false;
+
+// NESSUNO non e' un posto assegnabile a nessuno
+check assegnabile(STD, NESSUNO) = false;
+check assegnabile(DISABILE, NESSUNO) = false;
+
+// con posti liberi il parcheggio non e' pieno
+check parcheggioPieno = false;
+
+//  3. FACCIO ENTRARE UN DISABILE: consuma l'unico posto riservato
+set sens_in := true;
+step
+check stato = CHK_IN;
+
+set sens_in := false;
+set utente_rilevato := DISABILE;
+step
+check stato = VER;
+
+step
+check stato = INGR;
+check posto_assegnato = POSTO_DIS;
+
+set transito_ok := true;
+step
+check stato = IDLE;
+check posti_dis = 0;
+
+//  4. LA DERIVATA HA CAMBIATO VALORE, SENZA CHE NESSUNO L'ABBIA AGGIORNATA
+// e' questo il senso di "derivata": non e' memorizzata, viene ricalcolata
+check assegnabile(DISABILE, POSTO_DIS) = false;   // era true al punto 2
+check assegnabile(DISABILE, POSTO_STD) = true;    // resta il fallback
+
+// la statica invece non si e' mossa di un millimetro
+check capacita(POSTO_DIS) = 1;
+
+//  5. RIEMPIO ANCHE IL POSTO STANDARD: ora nessuno puo' piu' entrare
+set transito_ok := false;
+set sens_in := true;
+step
+set sens_in := false;
+set utente_rilevato := STD;
+step
+step
+check stato = INGR;
+check posto_assegnato = POSTO_STD;
+
+set transito_ok := true;
+step
+check posti_std = 0;
+
+// tutte le combinazioni utente x posto sono ora false
+check assegnabile(STD, POSTO_STD) = false;
+check assegnabile(ABBONATO, POSTO_STD) = false;
+check assegnabile(DISABILE, POSTO_STD) = false;
+check assegnabile(DISABILE, POSTO_DIS) = false;
+
+// ed e' esattamente cio' che parcheggioPieno calcola con il forall
+check parcheggioPieno = true;
