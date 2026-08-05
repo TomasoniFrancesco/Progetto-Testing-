@@ -19,8 +19,9 @@ che si ricorda che tipo di posto ha preso l'auto entrata. Quest'ultima serve per
 uscita bisogna sapere quale contatore rimettere a posto.
 
 Le funzioni derivate sono 2. La prima è \texttt{assegnabile}, ed è la più
-interessante delle due perché è n-aria: prende due argomenti, un utente e un posto, e
-dice se quel posto si può dare a quell'utente.
+interessante delle due perché è binaria: prende un utente e un posto, e
+dice se quel posto si può dare a quell'utente. Le sue locazioni sono quindi nove, una per
+ogni combinazione.
 
 \begin{lstlisting}[language=Pascal, caption={Funzione derivata assegnabile}]
 derived assegnabile: Prod(TipoUtente, TipoPosto) -> Boolean
@@ -47,10 +48,10 @@ Diventa vera quando \emph{nessun} tipo di utente può più entrare, né su un po
 né su uno disabile. La controllo nello scenario \texttt{test\_pieno\_totale.avalla}:
 all'inizio è falsa perché c'è ancora posto, alla fine diventa vera.
 
-C'è infine una funzione statica, anch'essa n-aria, che dice quanti posti esistono per
+C'è infine una funzione statica, che dice quanti posti esistono per
 ciascun tipo:
 
-\begin{lstlisting}[language=Pascal, caption={Funzione statica n-aria capacita}]
+\begin{lstlisting}[language=Pascal, caption={Funzione statica unaria capacita}]
 static capacita: TipoPosto -> Integer
 
 function capacita($p in TipoPosto) =
@@ -64,47 +65,7 @@ per fissare i due contatori, \texttt{posti\_std = capacita(POSTO\_STD)} e
 caso \texttt{NESSUNO} vale 0 perché non è un posto vero ma il segnaposto per ``nessun
 posto occupato''.
 
-\subsubsection{Verifica diretta delle funzioni n-arie}\label{sec:narie}
-
-Che una funzione n-aria sia dichiarata non vuol dire che calcoli quello che promette, e
-verificarla solo di riflesso attraverso le regole che la usano è indiretto. Dato che in
-Avalla un \texttt{check} accetta qualunque termine, si può invece valutarla direttamente
-con i suoi argomenti: è quello che fa \texttt{test\_funzioni\_narie.avalla}.
-\\ \\
-Nello stato iniziale lo scenario controlla la tabella completa di \texttt{assegnabile},
-tutte e nove le combinazioni utente per posto. L'unica cella che distingue il disabile
-dagli altri due utenti è \texttt{(DISABILE, POSTO\_DIS)}, ed è lì che sta tutta la
-politica dei posti riservati.
-\\ \\
-La parte più interessante viene dopo. Lo scenario fa entrare un disabile, che consuma
-l'unico posto riservato, e poi ricontrolla le stesse funzioni:
-
-\begin{lstlisting}[style=terminal, caption={Estratto dell'output di AsmetaV dopo l'ingresso del disabile}]
-check succeeded: posti_dis = 0
-check succeeded: assegnabile(DISABILE, POSTO_DIS) = false   // era true
-check succeeded: assegnabile(DISABILE, POSTO_STD) = true    // fallback
-check succeeded: capacita(POSTO_DIS) = 1                    // invariata
-\end{lstlisting}
-
-\texttt{assegnabile(DISABILE, POSTO\_DIS)} è passata da \texttt{true} a \texttt{false}
-senza che nessuna regola l'abbia aggiornata: è questo il senso di ``derivata'', il valore
-non è memorizzato ma ricalcolato dallo stato a ogni valutazione. Nello stesso identico
-passo \texttt{capacita(POSTO\_DIS)} vale ancora 1, perché una funzione statica non dipende
-dallo stato. Le due righe una accanto all'altra sono la differenza fra i due tipi di
-funzione, mostrata invece che dichiarata.
-\\ \\
-Una conferma ulteriore arriva dai dump di stato che AsmetaV stampa a ogni passo: dentro
-compaiono solo le funzioni controllate e le monitorate, mentre \texttt{assegnabile} e
-\texttt{capacita} non ci sono mai. Non fanno parte dello stato, ed è esattamente ciò che
-ci si aspetta.
-\\ \\
-Alla fine lo scenario riempie anche il posto standard e verifica che tutte le
-combinazioni siano diventate false e che \texttt{parcheggioPieno} sia passata a true:
-il quantificatore \texttt{forall} calcola davvero la congiunzione di quelle celle,
-controllata una per una invece che sulla fiducia. Tutti i 27 \texttt{check} passano.
-\newpage
-
-Ora passiamo alle regole. Quella che conta davvero è \texttt{r\_gestione\_VER}, dove si decide
+Ora passiamo alle regole. Una delle principali è \texttt{r\_gestione\_VER}, dove si decide
 chi entra e chi no. Ci sono tre costrutti in poche righe: un \texttt{let} per non ripetere
 \texttt{utente\_rilevato} ogni volta, un \texttt{if} sulla derivata n-aria e un
 \texttt{choose} con la sua clausola \texttt{ifnone}.
@@ -163,9 +124,6 @@ copia semplificata in \texttt{SmartParking\_MC.asm}. Le differenze sono due:
 La prima riguarda i costrutti: nella copia non ci sono né le funzioni derivate né il
 \texttt{choose}, e la scelta del posto è riscritta come una catena di \texttt{if}
 ``appiattiti''. Il comportamento è lo stesso, ma la traduzione verso NuSMV va liscia.
-Sul \texttt{choose} in particolare la semplificazione è d'obbligo: tradurre una scelta in
-un modello a stati finiti significa generare una transizione per ogni candidato, cosa che
-qui non servirebbe a niente visto che il candidato è sempre uno solo.
 \\ \\
 La seconda riguarda i contatori: nel modello principale sono \texttt{Integer}, e
 AsmetaSMV i domini infiniti non li accetta, quindi qui stanno su un dominio finito
@@ -176,26 +134,26 @@ tipo, e non avrebbero verificato niente. Lasciando dentro il 2 il model checker 
 davvero dimostrare che quel valore non viene mai raggiunto.
 
 \subsubsection{Simulazione manuale}
-
-Appena scritto il modello, la prima cosa è stata aprirlo nel simulatore e fare qualche
-step a mano, per vedere se si comportava come previsto prima di passare agli scenari.
-
-\screenshot{asmeta_simulator_ingresso_std}{Simulatore -- ingresso STD completo}{%
-Sequenza IDLE, CHK\_IN, VER, INGR, IDLE di un ingresso STD, con posti\_std che passa
-da 1 a 0.}
+Sono state condotte diverse simulazioni manuali tramite il simulatore, qui ne sono presenti due:
 
 Nello screenshot c'è il giro completo di un ingresso STD: metto \texttt{sens\_in} a true
 e passo in CHK\_IN, poi imposto l'utente e la macchina va in VER, da lì in INGR perché
 c'è posto, e infine con \texttt{transito\_ok} torno in IDLE con \texttt{posti\_std} sceso
 da 1 a 0.
 
-\screenshot{asmeta_simulator_uscita_std}{Simulatore -- uscita STD con pagamento}{%
-Uscita di un utente STD: passaggio per TARIF, poi USC, poi IDLE con posti\_std tornato
-a 1.}
+\screenshot{asmeta_simulator_ingresso_std}{Simulatore -- ingresso STD completo}{%
+Sequenza IDLE, CHK\_IN, VER, INGR, IDLE di un ingresso STD, con posti\_std che passa
+da 1 a 0.}
 
 Qui invece c'è l'uscita, sempre nella stessa sessione. Si vede il passaggio per TARIF,
 che è la parte che riguarda solo gli STD, e alla fine \texttt{posti\_std} torna a 1 e
 \texttt{posto\_assegnato} torna a NESSUNO.
+
+\screenshot{asmeta_simulator_uscita_std}{Simulatore -- uscita STD con pagamento}{%
+Uscita di un utente STD: passaggio per TARIF, poi USC, poi IDLE con posti\_std tornato
+a 1.}
+
+
 
 \newpage
 \subsection{Scenari Avalla}
@@ -219,8 +177,9 @@ Gli scenari sono questi:
 
 Sono tutti scritti a mano. I primi sei coprono un comportamento ciascuno ed è su di essi
 che si misura la copertura nella sezione seguente; il settimo è di natura diversa, perché
-non prova una sequenza di stati ma valuta direttamente le funzioni n-arie, come spiegato
-in \S\ref{sec:narie}. Agli scenari generati automaticamente è invece dedicata la
+non prova una sequenza di stati ma valuta direttamente le funzioni n-arie con i loro
+argomenti, prima e dopo un ingresso, per mostrare che la derivata cambia con lo stato
+mentre la statica no. Agli scenari generati automaticamente è invece dedicata la
 \S\ref{sec:generati}.
 
 Nell'animazione dell'abbonato la cosa da guardare è la fase di uscita: da CHK\_OUT si
@@ -250,25 +209,59 @@ Parcheggio saturo e rifiuto del terzo utente.}
 
 \subsubsection{Copertura degli scenari scritti a mano}
 
-Gli scenari girano con AsmetaV usando l'opzione che calcola anche la
-copertura. La differenza rispetto alla validazione
-normale è che, oltre a dirti se i \texttt{check} passano, ti stampa anche quali regole del
-modello sono state davvero eseguite. Mettendo insieme i sei scenari di comportamento si
-coprono tutte e 8 le regole di transizione più la main rule, e per
-\texttt{r\_gestione\_VER} si percorrono tutte e tre le strade possibili: il ramo
-\texttt{if} con il posto riservato (\texttt{test\_disabile}), il \texttt{choose} che
-ripiega sul posto standard (\texttt{test\_abbonato} e il fallback di
-\texttt{test\_disabile\_fallback}) e la clausola \texttt{ifnone} che porta in NEG
-(\texttt{test\_pieno}).
+Gli scenari girano con AsmetaV usando l'opzione che calcola anche la copertura.
+
+Lanciando \texttt{test\_pieno} da solo si ottiene:
+
+\begin{lstlisting}[style=terminal, caption={Copertura del solo test\_pieno.avalla}]
+** covered rules: **
+r_gestione_CHK_IN()  rule 100.00%   branch  (nessun ramo)
+r_gestione_INGR()    rule  71.43%   branch  33.33%
+r_gestione_VER()     rule  70.00%   branch  75.00%
+r_gestione_IDLE()    rule  50.00%   branch  25.00%
+r_gestione_NEG()     rule 100.00%   branch  50.00%
+r_Main()             rule  82.35%   branch  81.25%
+** NOT covered rules: **
+r_gestione_USC()   r_gestione_TARIF()   r_gestione_CHK_OUT()
+\end{lstlisting}
+
+Tre regole su nove non vengono mai attivate, semplicemente perché in quello scenario
+nessuno esce dal parcheggio, e nessuna delle altre arriva al 100\% di branch.
+
+Mettendo insieme i sei scenari di comportamento le regole vengono coperte tutte: le tre
+che mancano qui le portano \texttt{test\_abbonato} e \texttt{test\_disabile} (uscita, e
+quindi CHK\_OUT e USC) e \texttt{test\_pagamento\_std} (TARIF). Per
+\texttt{r\_gestione\_VER} si percorrono tutte le strade possibili: il ramo \texttt{if} con
+il posto riservato lo copre \texttt{test\_disabile}, il \texttt{choose} che ripiega sullo
+standard lo coprono \texttt{test\_abbonato} e il fallback di
+\texttt{test\_disabile\_fallback}, la clausola \texttt{ifnone} che porta in NEG la copre
+\texttt{test\_pieno} — e infatti \texttt{test\_pieno\_totale}, che da solo le attraversa
+tutte e tre, porta \texttt{r\_gestione\_VER} al 100\% di branch.
+
+\subsubsection{Quello che resta scoperto, e perché}
+
+La branch coverage invece non si chiude. I rami che restano fuori sono quelli dei
+\emph{self-loop}: i casi in cui la guardia di una regola è falsa proprio mentre il sistema
+si trova in quello stato. In \texttt{r\_gestione\_IDLE}, per esempio, uno dei quattro rami
+è ``nessuno dei due sensori è attivo'', cioè uno step a vuoto: è un comportamento
+legittimo del modello, ma nessuno scenario ha motivo di provocarlo, perché gli scenari
+sono scritti per raccontare qualcosa che succede.
+
+È esattamente lo stesso fenomeno che si ripresenta sul codice Java, dove l'unico branch
+non coperto da JaCoCo è il \texttt{default} irraggiungibile dello switch
+(Sezione~\ref{sec:testing}). In entrambi i casi la copertura mancante non segnala un buco
+nei test, ma un ramo che esiste per completezza strutturale e che nessuna esecuzione
+sensata attraversa.
 
 \screenshot{asmetav_coverage_report}{Report di copertura AsmetaV (Vc)}{%
 Console di AsmetaV con i check passati e l'elenco delle regole coperte.}
 
 \subsubsection{Scenari generati automaticamente}\label{sec:generati}
 
-Arrivare al 100\% scrivendo gli scenari a mano è fattibile su un modello di questa
+Coprire tutte le regole scrivendo gli scenari a mano è fattibile su un modello di questa
 dimensione, ma la domanda naturale è se il lavoro si possa far fare a una macchina. Ho
-provato due strade.
+provato due strade, e il risultato più interessante non è stato guadagnare copertura ma
+scoprire quanto poco significhi la parola ``copertura'' senza specificare il criterio.
 \\ \\
 La prima è l'export dal simulatore: si fanno un po' di step con input random e si salva
 la traccia con ``export to avalla''. Un primo tentativo da 15 step copriva solo 6 regole
@@ -301,18 +294,9 @@ tende a rompersi.
 
 \subsection{Model checking con AsmetaSMV}
 
-Il model checking consiste nel dare al tool il modello a stati finiti e una proprietà
-espressa in logica temporale, e lasciare che esplori \emph{tutti} gli stati raggiungibili
-per stabilire se la proprietà vale sempre. Se non vale, restituisce il cammino che la
-viola. Le proprietà si scrivono come \texttt{CTLSPEC} dentro il modello semplificato, ed
-è una cosa diversa dai \texttt{check} degli scenari Avalla: un \texttt{check} guarda un
-singolo stato su una traccia che ho deciso io, una \texttt{CTLSPEC} quantifica su tutti i
-cammini possibili.
-
 Le CTLSPEC sono 10. Otto sono vere e stanno in tre gruppi: safety (cose che non devono
 mai succedere), raggiungibilità (cose che devono poter succedere) e liveness (cose che
-prima o poi devono succedere). Le altre due sono false apposta, per vedere il
-controesempio.
+prima o poi devono succedere). Le altre due sono false apposta, per vedere il controesempio.
 
 \begin{longtable}{@{}p{0.6cm}p{7.3cm}p{2.2cm}p{1.3cm}@{}}
 \toprule
@@ -359,7 +343,7 @@ messe una accanto all'altra fanno vedere bene la differenza tra i due operatori.
 Otto specifiche con esito ``is true'' e due con esito ``is false'', ciascuna con il
 proprio controesempio.}
 
-
+\newpage
 \subsubsection{Model Advisor}\label{sec:model-advisor}
 
 Il Model Advisor passa anche lui per la traduzione in NuSMV, quindi sul modello

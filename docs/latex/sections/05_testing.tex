@@ -22,12 +22,91 @@ Le classi sono queste:
 \bottomrule
 \end{longtable}
 
-\subsection{MC/DC}
+Le asserzioni usate sono di tre famiglie, ciascuna dove serve: \texttt{assertEquals} per
+lo stato e i contatori dopo un'operazione, \texttt{assertThrows} per le precondizioni
+violate (un utente nullo, un contatore già al massimo), e i \texttt{verify} di Mockito per
+i messaggi mandati al display, che non lasciano traccia nello stato e quindi con un
+\texttt{assertEquals} non si controllerebbero.
 
+Due classi usano test \textbf{parametrici}: \texttt{ParcheggioTest} ha un
+\texttt{@ParameterizedTest} con \texttt{@CsvSource} a otto righe che prova tutte le
+combinazioni utente/contatori di \texttt{assegnaPosto}, e \texttt{CombinatorialTest}
+esegue allo stesso modo le sei righe della tabella pairwise. Il vantaggio è che aggiungere
+un caso costa una riga di CSV invece di un metodo intero.
+
+\subsubsection*{Come è organizzata questa sezione}
+
+Le sottosezioni che seguono sono in ordine di forza crescente, e ognuna esiste perché la
+precedente non basta. Si parte dalla copertura di statement e branch, che dice quali
+righe sono state eseguite. Si passa a un criterio più fine, MC/DC, perché eseguire una
+decisione composta non vuol dire aver provato il contributo di ogni sua condizione. Si
+arriva infine al mutation testing, che risponde alla domanda che nessuno dei due criteri
+precedenti può affrontare: quelle righe eseguite, qualcuno ne sta davvero controllando il
+risultato?
+
+\subsection{Esecuzione e copertura}
+
+\screenshot{junit_run_all_green}{Esecuzione di tutta la suite JUnit}{%
+Vista JUnit con tutti i test verdi e il conteggio totale.}
+
+Tutti i test del package \texttt{core} passano: sono 59, più quello Selenium che sta
+fuori dalla build normale.
+
+La copertura si misura con JaCoCo lanciando \texttt{mvn verify} e guardando il report. Dal conteggio sono escluse due cose: la UI Vaadin,
+provata end-to-end con Selenium e che JaCoCo non riesce a misurare, e la classe di
+avvio di Spring Boot, che sono tre righe di boilerplate. L'esclusione è scritta nel
+\texttt{pom.xml}.
+
+Alla prima misurazione il package \texttt{core} stava al 98\% di instruction e al 95\% di
+branch. \texttt{Parcheggio} era già al 100\% su tutte e due, il che tornava con il fatto
+che i suoi contratti erano già stati dimostrati con ESC. In \texttt{SmartParkingFSM}
+invece restavano fuori tre branch, e vale la pena guardarli uno per uno perché non sono
+tutti uguali:
+
+\begin{itemize}
+\item il self-loop di \texttt{gestisciUsc}, cioè il caso in cui in USC il transito non è
+ancora avvenuto;
+\item il ramo \texttt{display == null} di \texttt{cambiaStato};
+\item il \texttt{default} dello switch di \texttt{step}.
+\end{itemize}
+
+I primi due erano buchi veri, casi che mi ero semplicemente dimenticato di provare, e li
+ho chiusi con due test in più (\texttt{uscRestaInUscFinoAlTransito} e
+\texttt{fsmFunzionaSenzaDisplay}). Il terzo invece non si può coprire: lo switch gestisce
+tutti e 8 i valori dell'enum, quindi in quel \texttt{default} non ci si arriva mai. L'ho
+lasciato lo stesso perché lancia un'eccezione ed è una rete di sicurezza se un giorno
+qualcuno aggiunge uno stato nuovo. È lo stesso tipo di ramo infattibile già incontrato
+con AsmetaV sul modello (\S\ref{sec:asmetav-vc}).
+
+Dopo i due test aggiunti, quel \texttt{default} è rimasto l'unico branch scoperto di
+tutto il package.
+
+\screenshot{jacoco_coverage_report}{Report JaCoCo -- totale (solo package core)}{%
+98\% instruction e 98\% branch; l'unico elemento scoperto è 1 branch su 61.}
+
+\screenshot{jacoco_detail_parcheggio}{Report JaCoCo -- dettaglio per classe del package core}{%
+Parcheggio 100\%/100\%, enum e SensorInput 100\%, SmartParkingFSM 96\%/97\%.}
+
+\screenshot{jacoco_detail_fsm}{Report JaCoCo -- dettaglio per metodo di SmartParkingFSM}{%
+Tutti i metodi al 100\% tranne step(), per via del default irraggiungibile.}
+
+\subsection{Un criterio più forte: MC/DC}
+
+Il 98\% di branch coverage appena raggiunto ha un limite che non si vede dal numero. La
+branch coverage chiede che ogni ramo di ogni \texttt{if} sia stato percorso almeno una
+volta, ma non dice niente su \emph{quale} delle condizioni dentro quel test lo abbia
+fatto scattare. Una decisione come
+\texttt{(utente == STD || utente == ABBONATO) \&\& postiStd > 0} risulta coperta con due
+soli casi di test, uno che la rende vera e uno falsa, anche se una delle tre condizioni
+non ha mai influenzato l'esito. Se quella condizione fosse scritta male, i test
+passerebbero lo stesso e il branch risulterebbe verde.
+
+MC/DC serve esattamente a questo: chiede che per \emph{ogni} condizione atomica esista una
+coppia di casi in cui cambia solo quella condizione e cambia anche il risultato della
+decisione. È il criterio che dimostra che ciascuna condizione, da sola, conta qualcosa.
+\\ \\
 Dentro \texttt{assegnaPosto} ci sono due decisioni composte, cioè con più di una
-condizione legata da and/or, e su quelle serve la copertura MC/DC. La regola è che
-per ogni condizione serve una coppia di casi di test in cui cambia solo quella
-condizione e cambia anche il risultato della decisione. Vediamole una alla volta.
+condizione legata da and/or, ed è su quelle che l'ho applicato. Vediamole una alla volta.
 
 La prima è quella del ramo STD/ABBONATO: $D_1 = (\text{utente}{=}\text{STD}
 \lor \text{utente}{=}\text{ABBONATO}) \land \text{postiStd}{>}0$. Le tre condizioni
@@ -131,66 +210,63 @@ sia successo e verificare che sia successo \emph{solo} quello.
 
 \subsection{Model Based Testing}
 
-Qui l'idea è prendere uno scenario già scritto sul modello astratto e riportarlo tale e
-quale sul codice vero. \texttt{test\_pieno.avalla} è tradotto passo passo in
-\texttt{ScenarioAvallaTest}: ogni \texttt{set} dell'avalla diventa la preparazione
-dell'input, ogni \texttt{step} una chiamata a \texttt{step()} e ogni \texttt{check} un
-assert. Accanto a ciascuna riga c'è un commento con la riga originale dello scenario,
-così il confronto tra i due file si fa senza doverli tenere aperti tutti e due.
+Tutti i test visti finora sono nati guardando il codice. Il model based testing rovescia
+la direzione: il caso di test si ricava dal \emph{modello}, e il codice diventa l'oggetto
+sotto esame invece che la fonte. In questo progetto il modello c'è già ed è validato, e
+gli scenari Avalla sono a tutti gli effetti dei casi di test scritti su di esso: portarli
+sul codice è quindi un passaggio quasi meccanico.
 
-\subsection{Esecuzione e copertura}
+\texttt{test\_pieno.avalla} è tradotto riga per riga in \texttt{ScenarioAvallaTest}
+seguendo tre corrispondenze fisse:
 
-\screenshot{junit_run_all_green}{Esecuzione di tutta la suite JUnit}{%
-Vista JUnit con tutti i test verdi e il conteggio totale.}
+\begin{longtable}{@{}p{4.2cm}p{9.5cm}@{}}
+\toprule
+\textbf{Avalla} & \textbf{JUnit} \\
+\midrule
+\endhead
+\texttt{set f := v;} & preparazione dell'input, tramite i metodi statici di \texttt{SensorInput} \\
+\texttt{step} & una chiamata a \texttt{fsm.step(input)} \\
+\texttt{check e = v;} & un \texttt{assertEquals} sul getter corrispondente \\
+\bottomrule
+\end{longtable}
 
-Tutti i test del package \texttt{core} passano: sono 59, più quello Selenium che sta
-fuori dalla build normale.
+\begin{lstlisting}[language=Java, caption={Estratto di ScenarioAvallaTest: ogni blocco cita la riga dell'avalla}]
+// riga 9-11: set sens_in := true; step -> check stato = CHK_IN;
+fsm.step(SensorInput.sensIn());
+assertEquals(StatoSistema.CHK_IN, fsm.getStato());
 
-La copertura si misura con JaCoCo lanciando \texttt{mvn verify} e guardando il report. Dal conteggio sono escluse due cose: la UI Vaadin,
-provata end-to-end con Selenium e che JaCoCo non riesce a misurare, e la classe di
-avvio di Spring Boot, che sono tre righe di boilerplate. L'esclusione è scritta nel
-\texttt{pom.xml}.
+// riga 40-41: step (posti_std = 0 -> nega accesso) -> check stato = NEG;
+fsm.step(SensorInput.utente(TipoUtente.STD));
+assertEquals(StatoSistema.NEG, fsm.getStato());
+\end{lstlisting}
 
-Alla prima misurazione il package \texttt{core} stava al 98\% di instruction e al 95\% di
-branch. \texttt{Parcheggio} era già al 100\% su tutte e due, il che tornava con il fatto
-che i suoi contratti erano già stati dimostrati con ESC. In \texttt{SmartParkingFSM}
-invece restavano fuori tre branch, e vale la pena guardarli uno per uno perché non sono
-tutti uguali:
-
-\begin{itemize}
-\item il self-loop di \texttt{gestisciUsc}, cioè il caso in cui in USC il transito non è
-ancora avvenuto;
-\item il ramo \texttt{display == null} di \texttt{cambiaStato};
-\item il \texttt{default} dello switch di \texttt{step}.
-\end{itemize}
-
-I primi due erano buchi veri, casi che mi ero semplicemente dimenticato di provare, e li
-ho chiusi con due test in più (\texttt{uscRestaInUscFinoAlTransito} e
-\texttt{fsmFunzionaSenzaDisplay}). Il terzo invece non si può coprire: lo switch gestisce
-tutti e 8 i valori dell'enum, quindi in quel \texttt{default} non ci si arriva mai. L'ho
-lasciato lo stesso perché lancia un'eccezione ed è una rete di sicurezza se un giorno
-qualcuno aggiunge uno stato nuovo. È lo stesso tipo di ramo infattibile già incontrato
-con AsmetaV sul modello (\S\ref{sec:asmetav-vc}).
-
-Dopo i due test aggiunti, quel \texttt{default} è rimasto l'unico branch scoperto di
-tutto il package.
-
-\screenshot{jacoco_coverage_report}{Report JaCoCo -- totale (solo package core)}{%
-98\% instruction e 98\% branch; l'unico elemento scoperto è 1 branch su 61.}
-
-\screenshot{jacoco_detail_parcheggio}{Report JaCoCo -- dettaglio per classe del package core}{%
-Parcheggio 100\%/100\%, enum e SensorInput 100\%, SmartParkingFSM 96\%/97\%.}
-
-\screenshot{jacoco_detail_fsm}{Report JaCoCo -- dettaglio per metodo di SmartParkingFSM}{%
-Tutti i metodi al 100\% tranne step(), per via del default irraggiungibile.}
+Ogni blocco porta in commento la riga originale dello scenario, così il confronto fra i
+due file si fa senza tenerli aperti tutti e due. Non è pignoleria: è ciò che rende il test
+\emph{tracciabile} al modello, e quindi rifacibile se il modello cambia.
+\\ \\
+Una differenza fra i due livelli merita attenzione, perché è il punto in cui la
+traduzione non è del tutto meccanica. Nell'ASM ogni \texttt{set} imposta una funzione
+monitorata che resta impostata finché non la cambio, mentre in Java ogni
+\texttt{SensorInput} è un oggetto immutabile che descrive un singolo step. Dove l'avalla
+scrive \texttt{set sens\_in := false} per spegnere un sensore, il test Java semplicemente
+costruisce l'input successivo senza quel sensore: il risultato è lo stesso, ma la
+corrispondenza è uno-a-uno solo sugli \texttt{step} e sui \texttt{check}, non sui
+\texttt{set}.
+\\ \\
+Il valore della cosa si è visto sul branch \texttt{ci\_failure} (Sezione~\ref{sec:ci}):
+quando \texttt{assegnaPosto} è stata rotta di proposito, questo test è fra quelli che sono
+andati in rosso — cioè una regressione nel codice è stata intercettata da un caso di test
+che nessuno aveva scritto guardando il codice.
 
 \subsection{Mutation testing con PIT}
 \label{sec:mutation}
 
-Arrivato al 98\% di copertura mi restava un dubbio: la copertura dice che una riga è
-stata \emph{eseguita} durante i test, non che qualcuno stia davvero \emph{controllando}
-cosa fa. Un test che chiama un metodo e non verifica niente alza la copertura esattamente
-come un test scritto bene.
+Statement, branch e MC/DC hanno tutti la stessa cieca in comune, ed è l'ultimo gradino
+della scala. Dicono che una riga è stata \emph{eseguita}, o che una condizione ha
+\emph{influenzato} una decisione, ma nessuno dei tre guarda cosa succede dopo: se il
+risultato di quell'esecuzione sia stato \emph{controllato} da qualcuno. Un test che chiama
+un metodo e non verifica niente alza la copertura, MC/DC compreso, esattamente come un
+test scritto bene.
 
 Il mutation testing serve proprio a distinguere i due casi. PIT prende il bytecode e ci
 introduce piccoli difetti uno alla volta: cambia un \texttt{>} in \texttt{>=}, nega una
@@ -270,41 +346,24 @@ l'invariante JML \texttt{0 <= postiStd} (Sezione~\ref{sec:jml-ref}) e viola la C
 \texttt{ag(posti\_std >= 0)} verificata sul modello (\S\ref{sec:asmetav-vc}). Tre
 tecniche diverse che convergono sullo stesso stato illegale.
 
-\subsubsection*{Due operatori che valgono più degli altri}
-
-Due righe della tabella mi hanno fatto piacere più delle altre, perché ricollegano il
-risultato a lavoro fatto prima.
-
-I 9 mutanti \texttt{ConditionalsBoundary} sono quelli che trasformano \texttt{postiStd >
-0} in \texttt{postiStd >= 0} e simili. Ucciderli tutti vuol dire che i test distinguono
-davvero il caso ``c'è un posto'' dal caso ``non ce n'è'', ed è esattamente quello che
-serviva costruire con la tabella MC/DC: senza quei casi di confine mirati, una mutazione
-sul limite sarebbe passata liscia.
-
-I 21 mutanti \texttt{VoidMethodCall} sono le chiamate a \texttt{display.mostra(\dots)}
-cancellate. Sono metodi che non restituiscono niente, quindi cancellarli non cambia lo
-stato della FSM: un test che guarda solo lo stato finale non se ne accorgerebbe mai.
-Vengono uccisi grazie ai \texttt{verify} di Mockito, che è la conferma che quel pezzo di
-lavoro non era decorativo.
+Due righe della tabella valgono più delle altre, perché ricollegano il risultato al
+lavoro fatto prima. I 9 mutanti \texttt{ConditionalsBoundary} trasformano
+\texttt{postiStd > 0} in \texttt{postiStd >= 0}: ucciderli tutti vuol dire che i test
+distinguono davvero ``c'è un posto'' da ``non ce n'è'', ed è precisamente ciò che i casi
+di confine della tabella MC/DC servivano a costruire. I 21 \texttt{VoidMethodCall} sono
+invece le chiamate a \texttt{display.mostra(\dots)} cancellate: non cambiano lo stato
+della FSM, quindi un test che guarda solo lo stato finale non se ne accorgerebbe mai, e a
+ucciderli sono i \texttt{verify} di Mockito.
 
 \subsubsection*{Quanto vale davvero questo 100\%}
 
-Un punteggio pieno fa comodo ma va letto per quello che è, altrimenti si finisce per
-raccontarsi che il codice è perfetto.
-
-Primo: il nucleo è piccolo e fatto apposta per essere verificabile. Non ci sono cicli,
-l'aritmetica è solo somma e sottrazione di 1, non ci sono strutture dati. Su un dominio
-del genere il numero di mutanti possibili è basso e coprirli tutti è realistico; su una
-classe con array e cicli sarebbe tutta un'altra storia.
-
-Secondo, e più importante: PIT ha usato il suo insieme di operatori predefinito, quello
-che si vede nella Tabella~\ref{tab:pit}. Attivando gruppi più aggressivi il numero di
-mutanti crescerebbe e qualcuno probabilmente sopravvivrebbe. Quindi il 100\% non
-significa ``nessun difetto possibile sfugge ai miei test'', ma ``nessuno dei difetti di
-questa famiglia sfugge ai miei test''. È una differenza che vale la pena tenere presente,
-perché è la stessa che c'è fra la copertura e il mutation testing, solo spostata di un
-livello.
-
-Detto questo, la cosa che il risultato dimostra sul serio è quella che cercavo: quel 98\%
-di copertura non è gonfiato. Le righe eseguite dai test sono anche righe i cui effetti
-vengono controllati.
+Il punteggio pieno va letto per quello che è. Il nucleo è piccolo e fatto apposta per
+essere verificabile — niente cicli, niente strutture dati, aritmetica di soli
+incrementi — quindi i mutanti possibili sono pochi e coprirli tutti è realistico. E
+soprattutto PIT ha usato il suo insieme di operatori predefinito: attivandone di più
+aggressivi qualcuno probabilmente sopravvivrebbe. Il 100\% quindi non significa ``nessun
+difetto sfugge ai miei test'' ma ``nessun difetto \emph{di questa famiglia} sfugge ai miei
+test'' — la stessa distinzione che c'è fra copertura e mutation testing, spostata di un
+livello. Quello che il risultato dimostra sul serio è ciò che cercavo: il 98\% di
+copertura non è gonfiato, perché le righe eseguite sono anche righe i cui effetti vengono
+controllati.
