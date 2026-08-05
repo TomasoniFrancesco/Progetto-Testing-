@@ -63,6 +63,45 @@ per fissare i due contatori, \texttt{posti\_std = capacita(POSTO\_STD)} e
 \texttt{posti\_dis = capacita(POSTO\_DIS)}, invece di ripetere il numero 1 due volte. Il
 caso \texttt{NESSUNO} vale 0 perché non è un posto vero ma il segnaposto per ``nessun
 posto occupato''.
+
+\subsubsection{Verifica diretta delle funzioni n-arie}\label{sec:narie}
+
+Che una funzione n-aria sia dichiarata non vuol dire che calcoli quello che promette, e
+verificarla solo di riflesso attraverso le regole che la usano è indiretto. Dato che in
+Avalla un \texttt{check} accetta qualunque termine, si può invece valutarla direttamente
+con i suoi argomenti: è quello che fa \texttt{test\_funzioni\_narie.avalla}.
+\\ \\
+Nello stato iniziale lo scenario controlla la tabella completa di \texttt{assegnabile},
+tutte e nove le combinazioni utente per posto. L'unica cella che distingue il disabile
+dagli altri due utenti è \texttt{(DISABILE, POSTO\_DIS)}, ed è lì che sta tutta la
+politica dei posti riservati.
+\\ \\
+La parte più interessante viene dopo. Lo scenario fa entrare un disabile, che consuma
+l'unico posto riservato, e poi ricontrolla le stesse funzioni:
+
+\begin{lstlisting}[style=terminal, caption={Estratto dell'output di AsmetaV dopo l'ingresso del disabile}]
+check succeeded: posti_dis = 0
+check succeeded: assegnabile(DISABILE, POSTO_DIS) = false   // era true
+check succeeded: assegnabile(DISABILE, POSTO_STD) = true    // fallback
+check succeeded: capacita(POSTO_DIS) = 1                    // invariata
+\end{lstlisting}
+
+\texttt{assegnabile(DISABILE, POSTO\_DIS)} è passata da \texttt{true} a \texttt{false}
+senza che nessuna regola l'abbia aggiornata: è questo il senso di ``derivata'', il valore
+non è memorizzato ma ricalcolato dallo stato a ogni valutazione. Nello stesso identico
+passo \texttt{capacita(POSTO\_DIS)} vale ancora 1, perché una funzione statica non dipende
+dallo stato. Le due righe una accanto all'altra sono la differenza fra i due tipi di
+funzione, mostrata invece che dichiarata.
+\\ \\
+Una conferma ulteriore arriva dai dump di stato che AsmetaV stampa a ogni passo: dentro
+compaiono solo le funzioni controllate e le monitorate, mentre \texttt{assegnabile} e
+\texttt{capacita} non ci sono mai. Non fanno parte dello stato, ed è esattamente ciò che
+ci si aspetta.
+\\ \\
+Alla fine lo scenario riempie anche il posto standard e verifica che tutte le
+combinazioni siano diventate false e che \texttt{parcheggioPieno} sia passata a true:
+il quantificatore \texttt{forall} calcola davvero la congiunzione di quelle celle,
+controllata una per una invece che sulla fiducia. Tutti i 27 \texttt{check} passano.
 \newpage
 
 Ora passiamo alle regole. Quella che conta davvero è \texttt{r\_gestione\_VER}, dove si decide
@@ -174,11 +213,15 @@ Gli scenari sono questi:
 \texttt{test\_disabile\_fallback.avalla} & Il fallback: due disabili di fila, il secondo trova i riservati finiti e prende un posto standard. \\
 \texttt{test\_pagamento\_std.avalla} & Uscita STD con un pagamento che va male (resta in TARIF) e poi uno che va bene. \\
 \texttt{test\_pieno\_totale.avalla} & Parcheggio pieno del tutto (uno STD più un disabile), il terzo utente viene respinto. \\
+\texttt{test\_funzioni\_narie.avalla} & Valuta direttamente \texttt{assegnabile} e \texttt{capacita} con i loro argomenti, prima e dopo un ingresso, per mostrare che la derivata cambia con lo stato e la statica no. \\
 \bottomrule
 \end{longtable}
 
-Sono tutti scritti a mano, uno per ogni comportamento che volevo mettere alla prova.
-Agli scenari generati automaticamente è dedicata la \S\ref{sec:generati}.
+Sono tutti scritti a mano. I primi sei coprono un comportamento ciascuno ed è su di essi
+che si misura la copertura nella sezione seguente; il settimo è di natura diversa, perché
+non prova una sequenza di stati ma valuta direttamente le funzioni n-arie, come spiegato
+in \S\ref{sec:narie}. Agli scenari generati automaticamente è invece dedicata la
+\S\ref{sec:generati}.
 
 Nell'animazione dell'abbonato la cosa da guardare è la fase di uscita: da CHK\_OUT si
 salta direttamente a USC, TARIF non compare proprio. È esattamente la differenza tra
@@ -210,9 +253,13 @@ Parcheggio saturo e rifiuto del terzo utente.}
 Gli scenari girano con AsmetaV usando l'opzione che calcola anche la
 copertura. La differenza rispetto alla validazione
 normale è che, oltre a dirti se i \texttt{check} passano, ti stampa anche quali regole del
-modello sono state davvero eseguite. Mettendo insieme i sei scenari scritti a mano si
-coprono tutte e 8 le regole di transizione, la main rule e tutti i rami di
-\texttt{r\_gestione\_VER}.
+modello sono state davvero eseguite. Mettendo insieme i sei scenari di comportamento si
+coprono tutte e 8 le regole di transizione più la main rule, e per
+\texttt{r\_gestione\_VER} si percorrono tutte e tre le strade possibili: il ramo
+\texttt{if} con il posto riservato (\texttt{test\_disabile}), il \texttt{choose} che
+ripiega sul posto standard (\texttt{test\_abbonato} e il fallback di
+\texttt{test\_disabile\_fallback}) e la clausola \texttt{ifnone} che porta in NEG
+(\texttt{test\_pieno}).
 
 \screenshot{asmetav_coverage_report}{Report di copertura AsmetaV (Vc)}{%
 Console di AsmetaV con i check passati e l'elenco delle regole coperte.}

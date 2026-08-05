@@ -29,6 +29,9 @@ della main rule dell'ASM: guarda in che stato siamo e chiama il gestore giusto.
 
 \begin{lstlisting}[language=Java, caption={step() -- dispatch sullo stato corrente}]
 public void step(SensorInput input) {
+    if (input == null) {
+        throw new IllegalArgumentException("input non puo' essere null");
+    }
     switch (stato) {
         case IDLE:     gestisciIdle(input); break;
         case CHK_IN:   gestisciChkIn(); break;
@@ -38,12 +41,17 @@ public void step(SensorInput input) {
         case CHK_OUT:  gestisciChkOut(input); break;
         case TARIF:    gestisciTarif(input); break;
         case USC:      gestisciUsc(input); break;
+        default:
+            throw new IllegalStateException("Stato non gestito: " + stato);
     }
 }
 \end{lstlisting}
 
 Ogni \texttt{case} corrisponde a una regola dell'ASM, quindi il confronto tra i due
-livelli si fa a colpo d'occhio. C'è però una differenza che è meglio dire subito. Nel
+livelli si fa a colpo d'occhio. Il ramo \texttt{default} non è raggiungibile, dato che i
+casi coprono tutti e otto i valori dell'enum: è una rete di sicurezza per il giorno in cui
+qualcuno aggiungesse uno stato nuovo, e sarà l'unico branch che JaCoCo non riuscirà a
+coprire (Sezione~\ref{sec:testing}). C'è però una differenza che è meglio dire subito. Nel
 modello ASM il contatore viene scalato solo al transito vero e proprio, cioè in INGR,
 mentre qui la classe \texttt{Parcheggio} decide e scala tutto insieme dentro
 \texttt{assegnaPosto}, che viene chiamato da \texttt{gestisciVer}. Negli scenari di test

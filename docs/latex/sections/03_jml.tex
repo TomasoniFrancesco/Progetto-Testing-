@@ -190,7 +190,9 @@ Il vantaggio dell'ESC rispetto a un test che fallisce è che qui non si ottiene 
 ``no'': si ottiene l'esecuzione precisa che rompe il contratto. La traccia completa è
 lunga qualche centinaio di righe, ma la maggior parte riguarda le strutture interne
 dell'enum \texttt{TipoPosto} (i vari \texttt{\_JMLvalues}, \texttt{charArray}) e non dice
-niente di interessante. La parte che conta sono le ultime righe di \texttt{CE\#1}:
+niente di interessante. La parte che conta sono le ultime righe di \texttt{CE\#1} (i
+numeri di riga si riferiscono alla versione con il contratto incompleto, non a quella
+definitiva):
 
 \begin{lstlisting}[style=terminal, caption={Estratto di CE\#1: il ramo del posto disabile}]
 Parcheggio.java:112:  requires posto != null;
