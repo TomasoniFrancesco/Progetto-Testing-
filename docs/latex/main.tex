@@ -84,6 +84,27 @@
     keepspaces=true
 }
 
+% --- Stile "trascrizione LLM": riquadro chiaro, senza numeri di riga,
+%     spezzabile su piu' pagine. Usato per riportare prompt e risposta
+%     della rilettura critica del codice (Sezione analisi statica). ---
+\lstdefinestyle{llm}{
+    basicstyle=\ttfamily\scriptsize,
+    backgroundcolor=\color{blue!4},
+    frame=single,
+    rulecolor=\color{black!35},
+    breaklines=true,
+    breakatwhitespace=false,
+    numbers=none,
+    tabsize=2,
+    showstringspaces=false,
+    columns=fullflexible,
+    keepspaces=true,
+    extendedchars=true,
+    literate={à}{{\`a}}1 {è}{{\`e}}1 {é}{{\'e}}1 {ì}{{\`i}}1
+             {ò}{{\`o}}1 {ù}{{\`u}}1 {È}{{\`E}}1 {'}{{'}}1
+             {→}{{$\rightarrow$}}1 {–}{{--}}1
+}
+
 % ============================================================
 %  Comando \screenshot{nomefile}{didascalia}{descrizione}
 %

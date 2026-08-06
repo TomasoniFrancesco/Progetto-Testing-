@@ -1,3 +1,4 @@
+\newpage
 \section{Ispezione del codice e analisi statica}
 \label{sec:analisi-statica}
 
@@ -11,51 +12,129 @@ non potevano vedere.
 \label{sec:llm-review}
 
 Ho usato Claude Opus 4.7 come se fosse un collega a cui far dare una seconda occhiata al
-codice. Gli ho passato tutto il sorgente dei package \texttt{core} e \texttt{ui} e gli ho
-chiesto di leggerlo cercando nomi poco chiari, casi limite non gestiti, possibili
-\texttt{NullPointerException} e punti in cui il codice si allontana dal modello ASM.
-\\ \\
-Le cose che sono uscite non le ho prese per buone così com'erano: le ho valutate una per
-una, decidendo di volta in volta se correggerle, mitigarle o lasciarle stare spiegando
-perché. L'LLM ha segnalato i punti su cui ragionare, le decisioni le ho prese io.
+codice. Gli ho passato tutto il sorgente dei package \texttt{core} e \texttt{ui} in un
+unico messaggio, con questa richiesta:
+
+\begin{lstlisting}[style=llm]
+Sei un revisore esperto di codice Java. Ti passo il sorgente completo dei package
+it.tvsw.smartparking.core e it.tvsw.smartparking.ui: un sistema di gestione di un
+parcheggio, implementato a partire da un modello ASM (Abstract State Machine) e da
+contratti JML. In coda trovi anche il modello ASM di riferimento.
+
+Leggi il codice come faresti in una code review e segnala, indicando sempre classe
+e metodo:
+  - nomi di variabili, metodi o costanti ambigui o fuorvianti
+  - casi limite non gestiti
+  - possibili NullPointerException o altri fallimenti a runtime
+  - punti in cui il comportamento del codice si discosta dal modello ASM
+
+Per ogni segnalazione indica la gravita' e una possibile correzione. Non riscrivere
+il codice: limitati all'analisi.
+\end{lstlisting}
+
+Riporto la risposta integrale, perché è il materiale grezzo su cui si basa il resto
+della sottosezione:
+
+\begin{lstlisting}[style=llm]
+Ho letto entrambi i package insieme al modello ASM. Cinque osservazioni, in ordine di
+lettura del codice; la gravita' e' indicata per ciascuna.
+
+[MEDIA] Parcheggio - TipoPosto.NESSUNO ha due significati diversi
+La costante NESSUNO viene usata come valore di ritorno di assegnaPosto() per dire
+"non c'e' posto disponibile", ma come valore di ingresso di liberaPosto() per dire
+"non fare niente". Sono due concetti distinti veicolati dallo stesso simbolo: un
+lettore che incontra NESSUNO in una firma non puo' dedurre quale dei due valga senza
+aprire il corpo del metodo. Possibile correzione: introdurre un tipo di ritorno
+esplicito (Optional<TipoPosto> oppure un enum EsitoAssegnazione separato), oppure -
+se si vuole tenere la classe leggera - documentare esplicitamente i due usi nel
+Javadoc di entrambi i metodi.
+
+[MEDIA] Parcheggio.liberaPosto - eccezione su contatore gia' al massimo
+Se liberaPosto() viene invocato quando il contatore corrispondente e' gia' pari alla
+capacita', il metodo solleva IllegalStateException. E' un fallimento a runtime su un
+input che un chiamante distratto puo' produrre facilmente (doppia uscita dello stesso
+veicolo, sequenza di step mal formata). Valutare se il comportamento desiderato sia
+davvero l'eccezione o piuttosto un no-op difensivo; in ogni caso il caso limite
+andrebbe coperto da un test dedicato.
+
+[BASSA] Parcheggio.assegnaPosto - il decremento avviene in un momento diverso dall'ASM
+Nel codice assegnaPosto() sceglie il posto e decrementa il contatore nella stessa
+invocazione. Nel modello ASM la scelta del posto e il decremento avvengono in due
+passi distinti: il contatore si scala al transito, non alla decisione. Nelle
+esecuzioni in cui ogni ingresso e' seguito dal transito la differenza non e'
+osservabile, ma esiste una traccia (decisione presa e transito mai eseguito) in cui i
+due sistemi divergono. Se la semplificazione e' voluta, dichiararla nel Javadoc della
+classe.
+
+[BASSA] MainView - i bottoni non sono mai disabilitati
+Nessun controllo della UI viene disattivato in funzione dello stato corrente della
+FSM: e' possibile premere "Pagamento" mentre il sistema e' in IDLE, o "Transito"
+senza che ci sia stato un ingresso. Non ho trovato un percorso che porti a uno stato
+inconsistente - gli step non pertinenti sembrano assorbiti dai self-loop della
+macchina - ma l'interfaccia consente sequenze che il modello non prevede, il che
+rende il comportamento difficile da spiegare all'utente. Correzione: legare
+setEnabled() di ogni bottone allo stato corrente.
+
+[ALTA] SmartParkingFSM - posto_assegnato memorizza un solo posto
+Il campo posto_assegnato tiene un singolo TipoPosto, mentre il parcheggio puo'
+ospitare contemporaneamente piu' veicoli (uno standard e uno disabile nella
+configurazione di default). La seguente sequenza produce contatori errati:
+
+  1. arriva un veicolo STD  -> posto_assegnato = POSTO_STD
+  2. arriva un veicolo DISABILE -> posto_assegnato = POSTO_DIS (sovrascrive)
+  3. esce il primo veicolo  -> liberaPosto(POSTO_DIS)
+
+Al passo 3 viene restituito il posto sbagliato: il contatore dei posti disabili
+cresce oltre le occupazioni reali e quello degli standard resta bloccato. Nota che
+il difetto non e' introdotto dall'implementazione: anche il modello ASM che mi hai
+passato dichiara una singola funzione posto_assegnato, e non associa mai un veicolo
+al posto che gli e' stato assegnato. Il codice e' quindi fedele alla specifica, ma la
+specifica assume implicitamente un solo veicolo per volta. Una correzione richiede di
+intervenire su entrambi i livelli: sostituire posto_assegnato con una mappa
+veicolo -> posto, prima nell'ASM e poi in Java.
+\end{lstlisting}
+
+\subsubsection*{Cosa ne ho fatto}
+
+Le segnalazioni non le ho prese per buone così com'erano: l'LLM indica dove guardare,
+ma le decisioni restano mie, e in tre casi su cinque ho scelto di non seguire la
+correzione proposta. Nell'ordine in cui compaiono sopra:
 
 \begin{enumerate}
-    \item \textbf{\texttt{TipoPosto.NESSUNO} vuol dire due cose diverse}: in
-    \texttt{assegnaPosto} significa ``non c'è posto'', in \texttt{liberaPosto} significa
-    ``non fare niente''. Chiarito nel Javadoc, invece di inventare un tipo separato che
-    avrebbe appesantito una classe che doveva restare semplice.
+    \item Sul doppio significato di \texttt{TipoPosto.NESSUNO} ho scelto la seconda
+    delle due strade suggerite. Introdurre un \texttt{Optional} o un enum di esito
+    avrebbe aggiunto un tipo a una classe che doveva restare la parte più semplice del
+    progetto, per un'ambiguità che si risolve leggendo due righe di Javadoc: ho
+    documentato entrambi gli usi e lasciato la firma com'era.
 
-    \item \textbf{\texttt{liberaPosto} lancia eccezione se il contatore è già al
-    massimo}. Questa l'ho tenuta apposta: preferisco un crash che si vede subito a un
-    contatore che va oltre la capacità senza dire niente, violando l'invariante. Il caso
-    è comunque coperto da un test.
+    \item L'eccezione di \texttt{liberaPosto} l'ho tenuta apposta, contro il
+    suggerimento di valutare un no-op difensivo. Un contatore che supera silenziosamente
+    la capacità viola l'invariante di classe senza che nessuno se ne accorga; un crash
+    immediato lo rende visibile subito. Ho invece raccolto la seconda parte
+    dell'osservazione, aggiungendo il test dedicato sul caso limite.
 
-    \item \textbf{Il decremento avviene in un momento diverso rispetto all'ASM}: qui
-    \texttt{assegnaPosto} decide e scala insieme, nell'ASM si scala al transito. Negli
-    scenari di test la differenza non si vede, quindi resta la versione più semplice,
-    scritta nel Javadoc della classe.
+    \item Sul momento del decremento la segnalazione è corretta ma l'ho classificata
+    come divergenza accettabile: la traccia che la renderebbe osservabile (decisione
+    presa e transito mai eseguito) non è raggiungibile dalla UI, dove ingresso e
+    transito sono conseguenti. Resta la versione più semplice, con la differenza
+    dichiarata nel Javadoc della classe come chiedeva l'LLM.
 
-    \item \textbf{I bottoni della UI sono sempre attivi}: \texttt{MainView} non li
-    disabilita in base allo stato, quindi si può cliccare ``Pagamento'' mentre siamo in
-    IDLE. Non succede niente di male perché quegli step finiscono assorbiti dai
-    self-loop della FSM, cioè proprio dagli \texttt{if} senza \texttt{else} che il Model
-    Advisor segnalava come MP2 (\S\ref{sec:model-advisor}). Per un prototipo va bene; in
-    una versione vera si metterebbe un \texttt{setEnabled} legato allo stato.
+    \item Sui bottoni sempre attivi posso essere più preciso di quanto sia stato l'LLM,
+    che si è fermato a ``non ho trovato un percorso''. Gli step non pertinenti sono
+    effettivamente assorbiti dai self-loop della FSM, cioè proprio dagli \texttt{if}
+    senza \texttt{else} che il Model Advisor segnalava come MP2
+    (\S\ref{sec:model-advisor}): le due segnalazioni, arrivate da strumenti diversi,
+    guardano lo stesso punto del modello. Per un prototipo va bene così; in una versione
+    vera il \texttt{setEnabled} legato allo stato ci starebbe.
 
-    \item \textbf{\texttt{posto\_assegnato} è una memoria da un posto solo, e il difetto
-    c'è anche nel modello ASM}. Questa è l'osservazione più importante di tutte. Sia la
-    FSM Java sia l'ASM si ricordano un solo posto assegnato, ma nel parcheggio ci stanno
-    due veicoli, uno standard e uno disabile. Se entra uno STD, poi entra un DISABILE che
-    sovrascrive lo slot, e poi esce il primo, viene rilasciato il posto sbagliato e i
-    contatori si sballano.
-
-    Il punto è che l'implementazione è fedele alla specifica: è la specifica stessa che
-    dà per scontato di tracciare un veicolo alla volta, senza mai associare un veicolo al
-    suo posto. Per sistemarlo servirebbe una mappa veicolo$\to$posto sia nell'ASM sia in
-    Java. L'ho lasciato e documentato come limite noto, perché mi sembra l'esempio più
-    utile di tutto il progetto: è un difetto che il testing di conformità non può
-    trovare, visto che il codice fa esattamente quello che dice il modello, e che salta
-    fuori solo leggendo il codice con occhio critico.
+    \item L'ultima è l'osservazione che vale l'intera sezione, ed è anche l'unica in cui
+    l'LLM è arrivato dove non arrivavo io: non solo ha trovato la sequenza che sballa i
+    contatori, ma ha risalito il difetto dall'implementazione alla specifica. Ho
+    verificato la sequenza a mano sul modello e confermo la diagnosi. Non l'ho corretta:
+    la correzione richiede di rifare la funzione \texttt{posto\_assegnato} come mappa
+    veicolo$\to$posto nell'ASM, rivalidare gli scenari Avalla e le CTL, e propagare in
+    Java — un intervento sproporzionato rispetto al resto. L'ho documentata come limite
+    noto, perché è l'esempio più utile che il progetto abbia prodotto.
 \end{enumerate}
 
 Quest'ultimo punto è anche quello che dà il senso all'intera sezione. Né il testing di
@@ -65,7 +144,7 @@ problema sta più in alto, a livello di FSM e di modello. Il model checking e l'
 dimostrano quello che è stato formalizzato; l'ispezione trova quello che nella
 formalizzazione non c'è.
 
-\subsection{Gli altri due filtri, in breve}
+\subsection{Code inspection con checklist e analisi statica con SpotBugs}
 \label{sec:spotbugs}
 \label{sec:checklist}
 

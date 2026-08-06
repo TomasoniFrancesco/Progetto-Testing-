@@ -3,8 +3,7 @@
 
 \subsection{Struttura dei test}
 
-I test sono divisi in più classi, una per ogni cosa da coprire, invece che tutti
-insieme. Così se un test si rompe si capisce subito di che tipo di problema si tratta.
+I test sono divisi in più classi, una per ogni cosa da coprire.
 Le classi sono queste:
 
 \begin{longtable}{@{}p{4.3cm}p{8.7cm}@{}}
@@ -34,15 +33,6 @@ combinazioni utente/contatori di \texttt{assegnaPosto}, e \texttt{CombinatorialT
 esegue allo stesso modo le sei righe della tabella pairwise. Il vantaggio è che aggiungere
 un caso costa una riga di CSV invece di un metodo intero.
 
-\subsubsection*{Come è organizzata questa sezione}
-
-Le sottosezioni che seguono sono in ordine di forza crescente, e ognuna esiste perché la
-precedente non basta. Si parte dalla copertura di statement e branch, che dice quali
-righe sono state eseguite. Si passa a un criterio più fine, MC/DC, perché eseguire una
-decisione composta non vuol dire aver provato il contributo di ogni sua condizione. Si
-arriva infine al mutation testing, che risponde alla domanda che nessuno dei due criteri
-precedenti può affrontare: quelle righe eseguite, qualcuno ne sta davvero controllando il
-risultato?
 
 \subsection{Esecuzione e copertura}
 
@@ -101,10 +91,6 @@ soli casi di test, uno che la rende vera e uno falsa, anche se una delle tre con
 non ha mai influenzato l'esito. Se quella condizione fosse scritta male, i test
 passerebbero lo stesso e il branch risulterebbe verde.
 
-MC/DC serve esattamente a questo: chiede che per \emph{ogni} condizione atomica esista una
-coppia di casi in cui cambia solo quella condizione e cambia anche il risultato della
-decisione. È il criterio che dimostra che ciascuna condizione, da sola, conta qualcosa.
-\\ \\
 Dentro \texttt{assegnaPosto} ci sono due decisioni composte, cioè con più di una
 condizione legata da and/or, ed è su quelle che l'ho applicato. Vediamole una alla volta.
 
@@ -177,7 +163,7 @@ valori, e per farlo bastano 6 righe invece di 12.
 Le righe 3 e 5 sono le più interessanti, perché messe vicine fanno vedere la regola del
 posto riservato: stessa configurazione di contatori, ma il disabile entra e l'abbonato
 no.
-
+\newpage
 \subsection{Mockito}
 
 La FSM, ogni volta che cambia stato, manda un messaggio a un oggetto \texttt{Display}.
@@ -240,10 +226,6 @@ fsm.step(SensorInput.utente(TipoUtente.STD));
 assertEquals(StatoSistema.NEG, fsm.getStato());
 \end{lstlisting}
 
-Ogni blocco porta in commento la riga originale dello scenario, così il confronto fra i
-due file si fa senza tenerli aperti tutti e due. Non è pignoleria: è ciò che rende il test
-\emph{tracciabile} al modello, e quindi rifacibile se il modello cambia.
-\\ \\
 Una differenza fra i due livelli merita attenzione, perché è il punto in cui la
 traduzione non è del tutto meccanica. Nell'ASM ogni \texttt{set} imposta una funzione
 monitorata che resta impostata finché non la cambio, mentre in Java ogni
@@ -314,56 +296,4 @@ introdotto di proposito è stato intercettato dai test.
 \label{tab:pit}
 \end{longtable}
 
-\subsubsection*{Un mutante da vicino}
-
-Per capire cosa vuol dire in concreto ``mutante ucciso'' conviene guardarne uno solo.
-Prendiamo il ramo STD/ABBONATO di \texttt{assegnaPosto}, dove il codice originale è
-questo:
-
-\begin{lstlisting}[language=Java, caption={Codice originale}]
-if (postiStd > 0) {
-    postiStd = postiStd - 1;
-    return TipoPosto.POSTO_STD;
-}
-return TipoPosto.NESSUNO;
-\end{lstlisting}
-
-L'operatore \texttt{ConditionalsBoundary} sposta il limite del confronto, trasformando
-\texttt{postiStd > 0} in \texttt{postiStd >= 0}. È una modifica di un carattere, e in
-tutte le esecuzioni con almeno un posto libero non cambia assolutamente niente: il codice
-mutato si comporta come l'originale.
-
-La differenza salta fuori in un caso solo, quello con \texttt{postiStd == 0}. Lì
-l'originale salta il blocco e restituisce \texttt{NESSUNO}, mentre il mutante entra,
-decrementa il contatore portandolo a $-1$ e restituisce \texttt{POSTO\_STD}, cioè fa
-entrare un'auto in un parcheggio pieno.
-
-Quel mutante viene ucciso dal primo caso della tabella pairwise
-(Tabella~\ref{tab:pairwise}), l'unico che prova un utente STD con entrambi i contatori a
-zero. Ed è interessante notare che lo stesso difetto sarebbe stato intercettato anche
-dagli altri due livelli di verifica, ognuno a modo suo: il contatore a $-1$ viola
-l'invariante JML \texttt{0 <= postiStd} (Sezione~\ref{sec:jml-ref}) e viola la CTLSPEC
-\texttt{ag(posti\_std >= 0)} verificata sul modello (\S\ref{sec:asmetav-vc}). Tre
-tecniche diverse che convergono sullo stesso stato illegale.
-
-Due righe della tabella valgono più delle altre, perché ricollegano il risultato al
-lavoro fatto prima. I 9 mutanti \texttt{ConditionalsBoundary} trasformano
-\texttt{postiStd > 0} in \texttt{postiStd >= 0}: ucciderli tutti vuol dire che i test
-distinguono davvero ``c'è un posto'' da ``non ce n'è'', ed è precisamente ciò che i casi
-di confine della tabella MC/DC servivano a costruire. I 21 \texttt{VoidMethodCall} sono
-invece le chiamate a \texttt{display.mostra(\dots)} cancellate: non cambiano lo stato
-della FSM, quindi un test che guarda solo lo stato finale non se ne accorgerebbe mai, e a
-ucciderli sono i \texttt{verify} di Mockito.
-
-\subsubsection*{Quanto vale davvero questo 100\%}
-
-Il punteggio pieno va letto per quello che è. Il nucleo è piccolo e fatto apposta per
-essere verificabile — niente cicli, niente strutture dati, aritmetica di soli
-incrementi — quindi i mutanti possibili sono pochi e coprirli tutti è realistico. E
-soprattutto PIT ha usato il suo insieme di operatori predefinito: attivandone di più
-aggressivi qualcuno probabilmente sopravvivrebbe. Il 100\% quindi non significa ``nessun
-difetto sfugge ai miei test'' ma ``nessun difetto \emph{di questa famiglia} sfugge ai miei
-test'' — la stessa distinzione che c'è fra copertura e mutation testing, spostata di un
-livello. Quello che il risultato dimostra sul serio è ciò che cercavo: il 98\% di
-copertura non è gonfiato, perché le righe eseguite sono anche righe i cui effetti vengono
-controllati.
+\newpage
